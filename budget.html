@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Budget — Vault</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .main{grid-area:main;padding:2rem 2.5rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
+    .aside{grid-area:aside;background:var(--surface-container-low);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;}
+    .aside-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.5rem;border:1px solid rgba(72,72,71,.12);}
+    .stagger-aside{opacity:0;animation:slideUp .5s cubic-bezier(.4,0,.2,1) forwards;}
+    .stagger-aside:nth-child(1){animation-delay:.2s;}
+    .stagger-aside:nth-child(2){animation-delay:.4s;}
+    .stagger-aside:nth-child(3){animation-delay:.6s;}
+    .stagger-aside:nth-child(4){animation-delay:.8s;}
+
+    /* Freeze banner */
+    .freeze-banner{
+      background:rgba(255,113,108,.08);
+      border:1px solid rgba(255,113,108,.25);
+      border-radius:var(--radius-xl);
+      padding:1rem 1.5rem;
+      display:flex;align-items:center;gap:1rem;
+      animation:slideUp .4s ease both;
+      display:none;
+    }
+    .freeze-banner.show{display:flex;}
+    .freeze-banner-icon{width:36px;height:36px;border-radius:50%;background:rgba(255,113,108,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;animation:glowPulse 2s ease infinite;}
+
+    /* Health score */
+    .health-panel{
+      background:var(--surface-container);
+      border-radius:var(--radius-xl);
+      padding:2rem;
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:2.5rem;
+      align-items:center;
+      border:1px solid rgba(72,72,71,.12);
+      position:relative;overflow:hidden;
+    }
+    .health-panel::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(63,255,139,.06) 0%,transparent 70%);pointer-events:none;}
+    .score-ring-wrap{position:relative;width:140px;height:140px;flex-shrink:0;}
+    .score-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+    .score-num{font-family:'Manrope',sans-serif;font-size:2.25rem;font-weight:800;line-height:1;}
+    .health-metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;}
+    .hm-tile{background:var(--surface-container-high);border-radius:var(--radius-lg);padding:1rem 1.25rem;}
+    .hm-val{font-family:'Manrope',sans-serif;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;margin:.25rem 0;}
+
+    /* Monthly summary bar */
+    .month-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+    .ms-tile{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.25rem 1.5rem;border:1px solid rgba(72,72,71,.12);transition:transform .2s,box-shadow .2s;}
+    .ms-tile:hover{transform:translateY(-3px);box-shadow:var(--shadow-card);}
+    .ms-val{font-family:'Manrope',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-.02em;margin:.3rem 0;}
+
+    /* Budget category grid */
+    .budget-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.125rem;}
+    .budget-cat-card{
+      background:var(--surface-container);
+      border-radius:var(--radius-xl);
+      padding:1.25rem;
+      border:2px solid rgba(72,72,71,.12);
+      position:relative;
+      transition:border-color .2s,transform .2s,box-shadow .2s;
+    }
+    .budget-cat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-card);}
+    .budget-cat-card.over-budget{border-color:rgba(255,113,108,.35);animation:overBudgetPulse 2s ease infinite;}
+    .budget-cat-card.warn-budget{border-color:rgba(253,192,3,.25);}
+    .budget-cat-card.frozen{opacity:.5;pointer-events:none;}
+    .budget-cat-card.frozen::after{content:'FROZEN';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:800;font-size:.875rem;letter-spacing:.15em;color:var(--tertiary);background:rgba(14,14,14,.7);border-radius:calc(var(--radius-xl) - 2px);opacity:1;}
+
+    @keyframes overBudgetPulse{0%,100%{border-color:rgba(255,113,108,.35)}50%{border-color:rgba(255,113,108,.7);box-shadow:0 0 0 4px rgba(255,113,108,.1);}}
+
+    .cat-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+    .cat-icon-name{display:flex;align-items:center;gap:.625rem;}
+    .cat-emoji-wrap{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0;}
+    .cat-card-name{font-size:.9375rem;font-weight:600;}
+    .edit-btn{width:28px;height:28px;border-radius:var(--radius-full);border:1px solid rgba(72,72,71,.2);background:none;display:flex;align-items:center;justify-content:center;color:var(--on-surface-variant);cursor:pointer;transition:border-color .2s,color .2s;flex-shrink:0;}
+    .edit-btn:hover{border-color:var(--primary);color:var(--primary);}
+
+    .cat-amounts{display:flex;align-items:baseline;gap:.3rem;margin-bottom:.5rem;}
+    .cat-spent{font-family:'Manrope',sans-serif;font-size:1.25rem;font-weight:800;letter-spacing:-.02em;}
+    .cat-limit{font-size:.8125rem;color:var(--on-surface-variant);}
+
+    .budget-bar-track{height:5px;background:rgba(72,72,71,.2);border-radius:var(--radius-full);overflow:hidden;}
+    .budget-bar-fill{height:100%;border-radius:var(--radius-full);transition:width 1.2s cubic-bezier(.4,0,.2,1),background .5s;}
+    .budget-bar-fill.safe{background:var(--gradient-cta);}
+    .budget-bar-fill.warn{background:linear-gradient(90deg,#fdc003,#ffd84d);}
+    .budget-bar-fill.danger{background:linear-gradient(90deg,#ff716c,#ff9b97);}
+
+    .cat-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.6rem;}
+    .cat-pct{font-size:.75rem;font-weight:600;}
+    .cat-remain{font-size:.75rem;color:var(--on-surface-variant);}
+
+    /* Edit mode */
+    .budget-edit-row{display:none;margin-top:.875rem;gap:.5rem;}
+    .budget-cat-card.editing .budget-edit-row{display:flex;}
+    .budget-cat-card.editing .cat-limit{display:none;}
+    .edit-input{flex:1;background:var(--surface-container-high);border:1px solid rgba(63,255,139,.3);border-radius:var(--radius-md);padding:.4rem .625rem;color:var(--on-surface);font-size:.875rem;font-weight:600;outline:none;font-family:'Inter',sans-serif;}
+    .save-btn{background:var(--gradient-cta);color:var(--on-primary);border:none;border-radius:var(--radius-md);padding:.4rem .75rem;font-size:.75rem;font-weight:700;cursor:pointer;}
+
+    /* Savings goals */
+    .goals-list{display:flex;flex-direction:column;gap:1rem;}
+    .goal-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.375rem;border:1px solid rgba(72,72,71,.12);transition:transform .2s,box-shadow .2s;}
+    .goal-card:hover{transform:translateX(4px);}
+    .goal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+    .goal-icon-name{display:flex;align-items:center;gap:.75rem;}
+    .goal-icon{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+    .goal-name{font-size:.9375rem;font-weight:600;}
+    .goal-deadline{font-size:.6875rem;color:var(--on-surface-variant);margin-top:.15rem;}
+    .goal-amounts{text-align:right;}
+    .goal-current{font-family:'Manrope',sans-serif;font-size:1rem;font-weight:700;}
+    .goal-target{font-size:.75rem;color:var(--on-surface-variant);}
+    .goal-bar-track{height:6px;background:rgba(72,72,71,.2);border-radius:var(--radius-full);overflow:hidden;}
+    .goal-bar-fill{height:100%;border-radius:var(--radius-full);transition:width 1.3s cubic-bezier(.4,0,.2,1);}
+    .goal-pct{font-size:.75rem;font-weight:600;margin-top:.4rem;text-align:right;}
+
+    /* Bills */
+    .bill-row{display:flex;align-items:center;gap:.875rem;padding:.875rem 0;}
+    .bill-date-badge{
+      width:44px;height:44px;border-radius:var(--radius-md);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      flex-shrink:0;
+    }
+    .bill-day{font-family:'Manrope',sans-serif;font-size:1rem;font-weight:800;line-height:1;}
+    .bill-month{font-size:.5625rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
+    .bill-info{flex:1;min-width:0;}
+    .bill-name{font-size:.875rem;font-weight:600;}
+    .bill-sub{font-size:.6875rem;color:var(--on-surface-variant);margin-top:.15rem;}
+    .bill-amt{font-family:'Manrope',sans-serif;font-size:.9375rem;font-weight:700;text-align:right;flex-shrink:0;}
+    .bill-urgent{animation:glowPulse 2s ease infinite;}
+
+    /* Spending freeze control */
+    .freeze-control{
+      background:var(--surface-container);
+      border-radius:var(--radius-xl);
+      padding:1.5rem;
+      border:1px solid rgba(72,72,71,.12);
+      transition:border-color .3s,background .3s;
+    }
+    .freeze-control.active{
+      border-color:rgba(255,113,108,.3);
+      background:rgba(255,113,108,.03);
+    }
+    .freeze-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;}
+    .freeze-icon{width:44px;height:44px;border-radius:var(--radius-md);background:rgba(255,113,108,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .3s;}
+    .freeze-control.active .freeze-icon{background:rgba(255,113,108,.2);animation:glowPulse 2s ease infinite;}
+    .big-toggle{
+      width:56px;height:30px;border-radius:var(--radius-full);
+      background:var(--surface-bright);border:none;
+      position:relative;cursor:pointer;
+      transition:background .3s;flex-shrink:0;
+    }
+    .big-toggle::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:4px;left:4px;transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;}
+    .big-toggle.on{background:var(--tertiary);}
+    .big-toggle.on::after{transform:translateX(26px);box-shadow:0 2px 8px rgba(255,113,108,.4);}
+
+    /* Daily limit */
+    .limit-input-row{display:flex;align-items:center;gap:.75rem;margin-top:1rem;}
+    .limit-display{font-family:'Manrope',sans-serif;font-size:1.75rem;font-weight:800;letter-spacing:-.03em;}
+
+    /* Tips */
+    .tip-card{background:var(--surface-container-highest);border-radius:var(--radius-lg);padding:1rem 1.125rem;margin-bottom:.625rem;border-left:3px solid transparent;display:flex;gap:.875rem;align-items:flex-start;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+    .tip-card:hover{transform:translateX(4px);}
+    .tip-card.green{border-left-color:var(--primary);}
+    .tip-card.yellow{border-left-color:var(--secondary);}
+    .tip-card.red{border-left-color:var(--tertiary);}
+    .tip-icon{font-size:1.25rem;flex-shrink:0;margin-top:.1rem;}
+    .tip-title{font-size:.875rem;font-weight:600;margin-bottom:.2rem;}
+    .tip-desc{font-size:.8125rem;color:var(--on-surface-variant);line-height:1.5;}
+    .tip-saving{font-size:.75rem;font-weight:700;margin-top:.35rem;}
+  </style>
+</head>
+<body>
+<div class="app-shell with-aside">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="7" height="10" rx="1.5" fill="#000"/><rect x="11" y="4" width="7" height="14" rx="1.5" fill="#000"/><circle cx="5.5" cy="5.5" r="3.5" fill="#000"/></svg></div><span class="logo-name">Vault</span></div>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Overview</span>
+      <a class="nav-item" href="index.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="2" fill="currentColor"/><rect x="11" y="2" width="7" height="4" rx="2" fill="currentColor"/><rect x="2" y="13" width="7" height="5" rx="2" fill="currentColor"/><rect x="11" y="8" width="7" height="10" rx="2" fill="currentColor"/></svg>Dashboard</a>
+      <a class="nav-item" href="transactions.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Transactions</a>
+      <a class="nav-item" href="transfer.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M10 3l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Transfers</a>
+      <a class="nav-item" href="cards.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="5.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 9h15" stroke="currentColor" stroke-width="1.5"/></svg>Cards</a>
+    </nav>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Finance</span>
+      <a class="nav-item" href="analytics.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 14l4-5 4 3 3-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Analytics</a>
+      <a class="nav-item active" href="budget.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M13 15h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 7V5.5a4 4 0 018 0V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Budget</a>
+      <a class="nav-item" href="investments.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M2 15l5-5 4 2 5-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Investments</a>
+    </nav>
+    <div class="sidebar-footer"><div class="sidebar-footer-avatar">NS</div><div style="flex:1;min-width:0;"><div class="sidebar-footer-name">Naman Sharma</div><div class="sidebar-footer-role">Premium Plan</div></div></div>
+  </aside>
+
+  <!-- Topnav -->
+  <header class="topnav">
+    <div><div class="headline-sm">Budget & Goals</div><div class="body-sm mt-1">Financial control center · April 2026</div></div>
+    <div class="topnav-search"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--on-surface-variant);flex-shrink:0"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" placeholder="Search budgets…"/></div>
+    <div class="topnav-right"><div class="icon-btn"><div class="notif-dot"></div><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6zM8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="avatar">NS</div></div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Freeze Banner -->
+    <div class="freeze-banner" id="freezeBanner">
+      <div class="freeze-banner-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16M4.93 4.93l10.14 10.14M15.07 4.93L4.93 15.07" stroke="#ff716c" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div style="font-size:.9375rem;font-weight:700;color:var(--tertiary)">Spending Freeze Active</div><div class="body-sm mt-1">Non-essential categories are frozen. Only housing, health, and bills are permitted.</div></div>
+      <button class="btn btn-danger" onclick="toggleFreeze()">Deactivate</button>
+    </div>
+
+    <!-- Health Score + Monthly Summary -->
+    <div class="health-panel stagger">
+      <div class="score-ring-wrap">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="58" fill="none" stroke="var(--surface-container-high)" stroke-width="12"/>
+          <circle id="scoreRing" cx="70" cy="70" r="58" fill="none" stroke="url(#scoreGrad)" stroke-width="12"
+            stroke-dasharray="364" stroke-dashoffset="364"
+            stroke-linecap="round" transform="rotate(-90 70 70)"
+            style="transition:stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1) .2s"/>
+          <defs><linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3fff8b"/><stop offset="100%" stop-color="#13ea79"/></linearGradient></defs>
+        </svg>
+        <div class="score-center">
+          <div class="score-num text-primary" id="scoreNum">0</div>
+          <div class="label-sm mt-1">/ 100</div>
+          <div style="font-size:.6875rem;color:var(--primary);font-weight:600;margin-top:.2rem">GOOD</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="headline-sm mb-1">Financial Health Score</div>
+        <div class="body-md mb-4">Based on your spending patterns, savings rate, and bill punctuality.</div>
+        <div class="health-metrics">
+          <div class="hm-tile"><div class="label-sm">Savings Rate</div><div class="hm-val text-primary" id="savRate">0%</div></div>
+          <div class="hm-tile"><div class="label-sm">Budget Adherence</div><div class="hm-val text-secondary" id="budAdh">0%</div></div>
+          <div class="hm-tile"><div class="label-sm">Bills On-time</div><div class="hm-val text-primary">100%</div></div>
+          <div class="hm-tile"><div class="label-sm">Debt Ratio</div><div class="hm-val">4.6%</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly summary -->
+    <div class="month-summary">
+      <div class="ms-tile stagger"><div class="label-sm">Monthly Income</div><div class="ms-val text-primary" id="mIncome">$0</div><div class="body-sm">+Freelance</div></div>
+      <div class="ms-tile stagger"><div class="label-sm">Total Budgeted</div><div class="ms-val" id="mBudget">$0</div><div class="body-sm">Across 7 categories</div></div>
+      <div class="ms-tile stagger"><div class="label-sm">Spent So Far</div><div class="ms-val" id="mSpent">$0</div><div class="body-sm">of budget used</div></div>
+      <div class="ms-tile stagger"><div class="label-sm">Projected Savings</div><div class="ms-val text-primary" id="mSave">$0</div><div class="body-sm">↑ 12% vs last month</div></div>
+    </div>
+
+    <!-- Budget Categories -->
+    <section class="stagger">
+      <div class="section-header mb-4">
+        <div><div class="headline-sm">Category Budgets</div><div class="label-sm mt-1">Click the edit icon to update any limit</div></div>
+        <div style="display:flex;gap:.75rem;align-items:center;">
+          <div class="chips">
+            <button class="chip active" onclick="sortCats('default')">Default</button>
+            <button class="chip" onclick="sortCats('high')">Most Spent</button>
+            <button class="chip" onclick="sortCats('over')">Over Budget</button>
+          </div>
+          <button class="btn btn-secondary" onclick="addCategory()" style="white-space:nowrap;font-size:.8125rem">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Add Category
+          </button>
+        </div>
+      </div>
+
+      <div class="budget-grid" id="budgetGrid">
+
+        <div class="budget-cat-card" id="cat-housing" data-spent="2100" data-limit="3000" data-pct="70" data-essential="true">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(63,255,139,.1)">🏠</div>
+              <span class="cat-card-name">Housing</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('housing')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$2,100</span><span class="cat-limit"> / <span class="limit-val">$3,000</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" style="width:0" data-w="70%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-primary">70%</span><span class="cat-remain">$900 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-housing"/><button class="save-btn" onclick="saveCat('housing')">Save</button></div>
+        </div>
+
+        <div class="budget-cat-card warn-budget" id="cat-transport" data-spent="284" data-limit="300" data-pct="94" data-essential="false">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(255,113,108,.1)">🚕</div>
+              <span class="cat-card-name">Transport</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('transport')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$284</span><span class="cat-limit"> / <span class="limit-val">$300</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill warn" style="width:0" data-w="94%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-secondary">94%</span><span class="cat-remain" style="color:var(--secondary)">$16 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-transport"/><button class="save-btn" onclick="saveCat('transport')">Save</button></div>
+        </div>
+
+        <div class="budget-cat-card" id="cat-food" data-spent="810" data-limit="1000" data-pct="81" data-essential="false">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(253,192,3,.1)">🍽️</div>
+              <span class="cat-card-name">Food & Drink</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('food')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$810</span><span class="cat-limit"> / <span class="limit-val">$1,000</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill warn" style="width:0" data-w="81%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-secondary">81%</span><span class="cat-remain">$190 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-food"/><button class="save-btn" onclick="saveCat('food')">Save</button></div>
+        </div>
+
+        <div class="budget-cat-card" id="cat-shopping" data-spent="229" data-limit="500" data-pct="45" data-essential="false">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(100,180,255,.1)">🛒</div>
+              <span class="cat-card-name">Shopping</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('shopping')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$229</span><span class="cat-limit"> / <span class="limit-val">$500</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" style="width:0" data-w="45%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-primary">45%</span><span class="cat-remain">$271 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-shopping"/><button class="save-btn" onclick="saveCat('shopping')">Save</button></div>
+        </div>
+
+        <div class="budget-cat-card" id="cat-subs" data-spent="36" data-limit="100" data-pct="36" data-essential="true">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(167,139,250,.1)">📱</div>
+              <span class="cat-card-name">Subscriptions</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('subs')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$36</span><span class="cat-limit"> / <span class="limit-val">$100</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" style="width:0" data-w="36%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-primary">36%</span><span class="cat-remain">$64 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-subs"/><button class="save-btn" onclick="saveCat('subs')">Save</button></div>
+        </div>
+
+        <div class="budget-cat-card" id="cat-health" data-spent="23" data-limit="200" data-pct="11" data-essential="true">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(244,114,182,.1)">🏥</div>
+              <span class="cat-card-name">Health</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('health')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$23</span><span class="cat-limit"> / <span class="limit-val">$200</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" style="width:0" data-w="11%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-primary">11%</span><span class="cat-remain">$177 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-health"/><button class="save-btn" onclick="saveCat('health')">Save</button></div>
+        </div>
+
+        <div class="budget-cat-card" id="cat-entertainment" data-spent="0" data-limit="150" data-pct="0" data-essential="false">
+          <div class="cat-card-top">
+            <div class="cat-icon-name">
+              <div class="cat-emoji-wrap" style="background:rgba(52,211,153,.1)">🎮</div>
+              <span class="cat-card-name">Entertainment</span>
+            </div>
+            <button class="edit-btn" onclick="editCat('entertainment')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="cat-amounts"><span class="cat-spent">$0</span><span class="cat-limit"> / <span class="limit-val">$150</span></span></div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" style="width:0" data-w="0%"></div></div>
+          <div class="cat-footer"><span class="cat-pct text-primary">0%</span><span class="cat-remain">$150 left</span></div>
+          <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-entertainment"/><button class="save-btn" onclick="saveCat('entertainment')">Save</button></div>
+        </div>
+
+        <!-- Add category placeholder -->
+        <div class="budget-cat-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.625rem;cursor:pointer;color:var(--on-surface-variant);min-height:140px;" onclick="addCategory()">
+          <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <div style="font-size:.8125rem;font-weight:500">Add Category</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Savings Goals -->
+    <section class="stagger">
+      <div class="section-header mb-4">
+        <div><div class="headline-sm">Savings Goals</div><div class="label-sm mt-1">4 active goals</div></div>
+        <button class="btn btn-secondary" style="font-size:.8125rem"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> New Goal</button>
+      </div>
+      <div class="goals-list">
+
+        <div class="goal-card stagger">
+          <div class="goal-header">
+            <div class="goal-icon-name"><div class="goal-icon" style="background:rgba(63,255,139,.1)">🛡️</div><div><div class="goal-name">Emergency Fund</div><div class="goal-deadline">Target: Dec 2026</div></div></div>
+            <div class="goal-amounts"><div class="goal-current text-primary">$12,400</div><div class="goal-target">of $20,000</div></div>
+          </div>
+          <div class="goal-bar-track"><div class="goal-bar-fill" style="background:var(--gradient-cta);width:0" data-w="62%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;"><span class="goal-pct text-primary">62% · $7,600 to go</span><button class="btn btn-tertiary" style="font-size:.75rem;padding:.2rem .5rem">Add Funds</button></div>
+        </div>
+
+        <div class="goal-card stagger">
+          <div class="goal-header">
+            <div class="goal-icon-name"><div class="goal-icon" style="background:rgba(100,180,255,.1)">✈️</div><div><div class="goal-name">Europe Vacation</div><div class="goal-deadline">Target: June 2026</div></div></div>
+            <div class="goal-amounts"><div class="goal-current" style="color:#64b4ff">$1,850</div><div class="goal-target">of $5,000</div></div>
+          </div>
+          <div class="goal-bar-track"><div class="goal-bar-fill" style="background:linear-gradient(90deg,#64b4ff,#90c8ff);width:0" data-w="37%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;"><span class="goal-pct" style="color:#64b4ff">37% · $3,150 to go</span><button class="btn btn-tertiary" style="font-size:.75rem;padding:.2rem .5rem">Add Funds</button></div>
+        </div>
+
+        <div class="goal-card stagger">
+          <div class="goal-header">
+            <div class="goal-icon-name"><div class="goal-icon" style="background:rgba(167,139,250,.1)">💻</div><div><div class="goal-name">MacBook Pro M4</div><div class="goal-deadline">Target: May 2026</div></div></div>
+            <div class="goal-amounts"><div class="goal-current" style="color:#a78bfa">$2,800</div><div class="goal-target">of $3,500</div></div>
+          </div>
+          <div class="goal-bar-track"><div class="goal-bar-fill" style="background:linear-gradient(90deg,#a78bfa,#c4b5fd);width:0" data-w="80%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;"><span class="goal-pct" style="color:#a78bfa">80% · $700 to go</span><button class="btn btn-primary" style="font-size:.75rem;padding:.3rem .75rem">Almost there!</button></div>
+        </div>
+
+        <div class="goal-card stagger">
+          <div class="goal-header">
+            <div class="goal-icon-name"><div class="goal-icon" style="background:rgba(253,192,3,.1)">📈</div><div><div class="goal-name">Investment Top-up</div><div class="goal-deadline">Target: Aug 2026</div></div></div>
+            <div class="goal-amounts"><div class="goal-current text-secondary">$4,200</div><div class="goal-target">of $10,000</div></div>
+          </div>
+          <div class="goal-bar-track"><div class="goal-bar-fill" style="background:linear-gradient(90deg,var(--secondary),#ffd84d);width:0" data-w="42%"></div></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.4rem;"><span class="goal-pct text-secondary">42% · $5,800 to go</span><button class="btn btn-tertiary" style="font-size:.75rem;padding:.2rem .5rem">Add Funds</button></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Aside -->
+  <aside class="aside">
+
+    <!-- Spending Freeze -->
+    <div class="freeze-control stagger-aside" id="freezeControl">
+      <div class="freeze-header">
+        <div class="freeze-icon" id="freezeIcon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2v16M2 10h16M4.93 4.93l10.14 10.14M15.07 4.93L4.93 15.07" stroke="#ff716c" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="title-md">Spending Freeze</div>
+          <div class="body-sm mt-1">Block all non-essential spending instantly</div>
+        </div>
+        <button class="big-toggle" id="freezeToggle" onclick="toggleFreeze()"></button>
+      </div>
+      <div class="body-sm mt-3" style="padding:.75rem;background:rgba(72,72,71,.08);border-radius:var(--radius-md);line-height:1.6;">
+        Essential: Housing, Health, Subscriptions<br/>
+        <span style="color:var(--tertiary)">Frozen: Food, Transport, Shopping, Entertainment</span>
+      </div>
+    </div>
+
+    <!-- Daily Spending Limit -->
+    <div class="aside-card stagger-aside">
+      <div class="title-md mb-1">Daily Spending Limit</div>
+      <div class="body-sm mb-3">Get an alert when you hit this amount</div>
+      <div class="limit-display text-primary" id="dailyLimitDisplay">$120</div>
+      <input type="range" id="dailyLimitSlider" min="20" max="500" step="10" value="120" oninput="updateDailyLimit(this.value)" style="width:100%;margin-top:.75rem;accent-color:var(--primary);cursor:pointer;"/>
+      <div style="display:flex;justify-content:space-between;margin-top:.25rem;"><span class="label-sm">$20</span><span class="label-sm">$500</span></div>
+      <div style="background:rgba(63,255,139,.08);border:1px solid rgba(63,255,139,.15);border-radius:var(--radius-md);padding:.75rem;margin-top:1rem;">
+        <div class="label-sm text-primary mb-1">Today's Spend</div>
+        <div style="font-family:'Manrope',sans-serif;font-size:1.25rem;font-weight:800">$6.50</div>
+        <div class="body-sm">$113.50 under your limit</div>
+      </div>
+    </div>
+
+    <!-- Upcoming Bills -->
+    <div class="aside-card stagger-aside">
+      <div class="section-header mb-3"><div class="title-md">Upcoming Bills</div><span class="label-sm">Next 30 days</span></div>
+      <div style="display:flex;flex-direction:column;">
+
+        <div class="bill-row">
+          <div class="bill-date-badge" style="background:rgba(253,192,3,.1)">
+            <div class="bill-day text-secondary">10</div>
+            <div class="bill-month text-secondary">APR</div>
+          </div>
+          <div class="bill-info"><div class="bill-name">Amazon Order</div><div class="bill-sub">Pending charge</div></div>
+          <div class="bill-amt">$142.00</div>
+        </div>
+
+        <div class="bill-row bill-urgent">
+          <div class="bill-date-badge" style="background:rgba(255,113,108,.1)">
+            <div class="bill-day text-tertiary">15</div>
+            <div class="bill-month text-tertiary">APR</div>
+          </div>
+          <div class="bill-info"><div class="bill-name">Gym Membership</div><div class="bill-sub">Monthly · Auto-pay</div></div>
+          <div class="bill-amt">$45.00</div>
+        </div>
+
+        <div class="bill-row">
+          <div class="bill-date-badge" style="background:rgba(72,72,71,.15)">
+            <div class="bill-day">20</div>
+            <div class="bill-month">APR</div>
+          </div>
+          <div class="bill-info"><div class="bill-name">Credit Card Payment</div><div class="bill-sub">Minimum due</div></div>
+          <div class="bill-amt">$850.00</div>
+        </div>
+
+        <div class="bill-row">
+          <div class="bill-date-badge" style="background:rgba(72,72,71,.1)">
+            <div class="bill-day">01</div>
+            <div class="bill-month">MAY</div>
+          </div>
+          <div class="bill-info"><div class="bill-name">Rent — May</div><div class="bill-sub">Auto-transfer</div></div>
+          <div class="bill-amt">$2,100</div>
+        </div>
+
+        <div class="bill-row">
+          <div class="bill-date-badge" style="background:rgba(72,72,71,.1)">
+            <div class="bill-day">05</div>
+            <div class="bill-month">MAY</div>
+          </div>
+          <div class="bill-info"><div class="bill-name">iCloud Storage</div><div class="bill-sub">Annual plan · Monthly</div></div>
+          <div class="bill-amt">$9.99</div>
+        </div>
+
+      </div>
+      <div style="background:rgba(72,72,71,.08);border-radius:var(--radius-md);padding:.75rem;margin-top:.5rem;display:flex;justify-content:space-between;align-items:center;">
+        <div class="body-sm">Total due this month</div>
+        <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:1rem">$3,146.99</div>
+      </div>
+    </div>
+
+    <!-- Smart Tips -->
+    <div class="aside-card stagger-aside">
+      <div class="title-md mb-3">Smart Tips</div>
+
+      <div class="tip-card green">
+        <div class="tip-icon">💡</div>
+        <div><div class="tip-title">Cancel unused subscriptions</div><div class="tip-desc">You're paying for 5 subscriptions. Cancelling 2 could save you $20+/mo.</div><div class="tip-saving text-primary">Potential saving: $240/yr</div></div>
+      </div>
+
+      <div class="tip-card yellow">
+        <div class="tip-icon">🍽️</div>
+        <div><div class="tip-title">Dining budget nearly full</div><div class="tip-desc">Only 21 days in and 81% of food budget is used. Cook at home 2 days/week.</div><div class="tip-saving text-secondary">Could save: $150/mo</div></div>
+      </div>
+
+      <div class="tip-card red">
+        <div class="tip-icon">🚕</div>
+        <div><div class="tip-title">Transport almost over limit</div><div class="tip-desc">$16 left in transport budget. Consider increasing limit or using public transit.</div><div class="tip-saving text-tertiary">Adjust limit or switch modes</div></div>
+      </div>
+
+      <div class="tip-card green">
+        <div class="tip-icon">🎯</div>
+        <div><div class="tip-title">MacBook goal almost done</div><div class="tip-desc">You're 80% of the way to your MacBook goal. Add $700 to hit it before May.</div><div class="tip-saving text-primary">Goal completion: May 2026</div></div>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<script>
+/* ── Count-up ──────────────────────────────────────── */
+function cu(id, val, suf='', pre='', dec=0, dur=1200) {
+  const el=document.getElementById(id); if(!el)return;
+  const t0=performance.now();
+  const fmt=n=>pre+(n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,','))+suf;
+  (function u(now){const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=fmt(val*e);if(p<1)requestAnimationFrame(u);else el.textContent=fmt(val);})(t0);
+}
+
+setTimeout(()=>{
+  // Health score ring
+  const ring=document.getElementById('scoreRing');
+  const score=72;
+  ring.style.strokeDashoffset = 364*(1-score/100);
+  let v=0; const iv=setInterval(()=>{v=Math.min(v+2,score);document.getElementById('scoreNum').textContent=v;if(v>=score)clearInterval(iv);},18);
+
+  cu('savRate',42,'%','',0);
+  cu('budAdh',83,'%','',0);
+  cu('mIncome',11600,'','$',0);
+  cu('mBudget',5250,'','$',0);
+  cu('mSpent',3482,'','$',0);
+  cu('mSave',8118,'','$',0);
+
+  // Budget bars
+  document.querySelectorAll('.budget-bar-fill').forEach(el=>{ el.style.width=el.dataset.w; });
+
+  // Goal bars
+  document.querySelectorAll('.goal-bar-fill').forEach(el=>{ el.style.width=el.dataset.w; });
+},300);
+
+/* ── Edit budget category ─────────────────────────── */
+function editCat(id) {
+  const card=document.getElementById('cat-'+id);
+  const wasEditing=card.classList.contains('editing');
+  document.querySelectorAll('.budget-cat-card.editing').forEach(c=>c.classList.remove('editing'));
+  if(!wasEditing) {
+    card.classList.add('editing');
+    const inp=document.getElementById('inp-'+id);
+    const currentLimit=card.querySelector('.limit-val').textContent.replace(/[$,]/g,'');
+    inp.value=currentLimit;
+    inp.focus();
+    inp.select();
+  }
+}
+
+function saveCat(id) {
+  const card=document.getElementById('cat-'+id);
+  const inp=document.getElementById('inp-'+id);
+  const newLimit=parseFloat(inp.value);
+  if(!newLimit||newLimit<=0){card.classList.remove('editing');return;}
+
+  const spent=parseFloat(card.dataset.spent);
+  const pct=Math.round((spent/newLimit)*100);
+  card.dataset.limit=newLimit;
+  card.dataset.pct=pct;
+
+  // Update display
+  card.querySelector('.limit-val').textContent='$'+newLimit.toLocaleString();
+  card.querySelector('.cat-pct').textContent=pct+'%';
+  card.querySelector('.cat-remain').textContent='$'+(newLimit-spent).toLocaleString()+' left';
+
+  // Update bar
+  const bar=card.querySelector('.budget-bar-fill');
+  bar.style.width=Math.min(pct,100)+'%';
+  bar.className='budget-bar-fill '+(pct>=90?'danger':pct>=75?'warn':'safe');
+
+  // Update pct color
+  const pctEl=card.querySelector('.cat-pct');
+  pctEl.className='cat-pct '+(pct>=90?'text-tertiary':pct>=75?'text-secondary':'text-primary');
+
+  // Update card state
+  card.classList.remove('over-budget','warn-budget');
+  if(pct>=100) card.classList.add('over-budget');
+  else if(pct>=75) card.classList.add('warn-budget');
+
+  card.classList.remove('editing');
+
+  // Flash animation
+  card.style.transform='scale(1.02)';
+  setTimeout(()=>card.style.transform='',200);
+}
+
+/* Enter to save */
+document.querySelectorAll('.edit-input').forEach(inp=>{
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){const id=inp.id.replace('inp-','');saveCat(id);}
+    if(e.key==='Escape'){document.querySelectorAll('.budget-cat-card.editing').forEach(c=>c.classList.remove('editing'));}
+  });
+});
+
+/* ── Spending Freeze ───────────────────────────────── */
+let freezeActive=false;
+function toggleFreeze(){
+  freezeActive=!freezeActive;
+  document.getElementById('freezeToggle').classList.toggle('on',freezeActive);
+  document.getElementById('freezeControl').classList.toggle('active',freezeActive);
+  document.getElementById('freezeBanner').classList.toggle('show',freezeActive);
+
+  // Freeze non-essential cards
+  document.querySelectorAll('.budget-cat-card').forEach(card=>{
+    if(card.dataset.essential==='false'){
+      card.classList.toggle('frozen',freezeActive);
+    }
+  });
+}
+
+/* ── Daily limit slider ────────────────────────────── */
+function updateDailyLimit(v){
+  document.getElementById('dailyLimitDisplay').textContent='$'+v;
+}
+
+/* ── Sort categories ───────────────────────────────── */
+function sortCats(mode){
+  const grid=document.getElementById('budgetGrid');
+  const cards=[...grid.querySelectorAll('.budget-cat-card[data-spent]')];
+  const placeholder=grid.querySelector('[onclick="addCategory()"]');
+
+  if(mode==='high') cards.sort((a,b)=>b.dataset.spent-a.dataset.spent);
+  else if(mode==='over') cards.sort((a,b)=>b.dataset.pct-a.dataset.pct);
+  else cards.sort((a,b)=>['housing','transport','food','shopping','subs','health','entertainment'].indexOf(a.id.replace('cat-',''))-['housing','transport','food','shopping','subs','health','entertainment'].indexOf(b.id.replace('cat-','')));
+
+  cards.forEach(c=>grid.appendChild(c));
+  if(placeholder) grid.appendChild(placeholder);
+}
+
+/* ── Chips ─────────────────────────────────────────── */
+document.querySelectorAll('.chips .chip').forEach(c=>c.addEventListener('click',()=>{c.closest('.chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');}));
+
+/* ── Add category ──────────────────────────────────── */
+function addCategory(){
+  const name=prompt('Category name:');
+  if(!name) return;
+  const limit=parseFloat(prompt('Monthly budget limit ($):'));
+  if(!limit||limit<=0) return;
+  const emojis=['🎯','⚡','🎨','🐾','🎓','🌿'];
+  const emoji=emojis[Math.floor(Math.random()*emojis.length)];
+  const id='cat-'+name.toLowerCase().replace(/\s+/g,'-');
+
+  const card=document.createElement('div');
+  card.className='budget-cat-card'; card.id=id;
+  card.dataset.spent='0'; card.dataset.limit=limit; card.dataset.pct='0'; card.dataset.essential='false';
+  card.innerHTML=`
+    <div class="cat-card-top"><div class="cat-icon-name"><div class="cat-emoji-wrap" style="background:rgba(63,255,139,.1)">${emoji}</div><span class="cat-card-name">${name}</span></div>
+    <button class="edit-btn" onclick="editCat('${id.replace('cat-','')}')"><svg width="11" height="11" viewBox="0 0 20 20" fill="none"><path d="M14 3l3 3-10 10-4 1 1-4L14 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+    <div class="cat-amounts"><span class="cat-spent">$0</span><span class="cat-limit"> / <span class="limit-val">$${limit.toLocaleString()}</span></span></div>
+    <div class="budget-bar-track"><div class="budget-bar-fill safe" style="width:0" data-w="0%"></div></div>
+    <div class="cat-footer"><span class="cat-pct text-primary">0%</span><span class="cat-remain">$${limit.toLocaleString()} left</span></div>
+    <div class="budget-edit-row"><input class="edit-input" type="number" placeholder="New limit" id="inp-${id.replace('cat-','')}"/><button class="save-btn" onclick="saveCat('${id.replace('cat-','')}')">Save</button></div>`;
+
+  card.style.opacity='0'; card.style.transform='scale(.95)';
+  const placeholder=document.getElementById('budgetGrid').querySelector('[onclick="addCategory()"]');
+  document.getElementById('budgetGrid').insertBefore(card,placeholder);
+  setTimeout(()=>{card.style.transition='opacity .35s,transform .35s';card.style.opacity='1';card.style.transform='';},50);
+
+  // Wire up enter key for the new input
+  const newInp=card.querySelector('.edit-input');
+  if(newInp) newInp.addEventListener('keydown',e=>{
+    const catId=newInp.id.replace('inp-','');
+    if(e.key==='Enter') saveCat(catId);
+    if(e.key==='Escape') document.querySelectorAll('.budget-cat-card.editing').forEach(c=>c.classList.remove('editing'));
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Vault</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    /* Splash */
+    .splash{position:fixed;inset:0;z-index:999;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;transition:opacity .6s ease,transform .6s ease;}
+    .splash.out{opacity:0;transform:scale(1.05);pointer-events:none;}
+    .splash-logo{display:flex;align-items:center;gap:.875rem;animation:splashEntry .7s cubic-bezier(.34,1.56,.64,1) both;}
+    .splash-mark{width:52px;height:52px;background:var(--gradient-cta);border-radius:16px;display:flex;align-items:center;justify-content:center;animation:glowPulse 2s ease infinite;}
+    .splash-name{font-family:'Manrope',sans-serif;font-weight:800;font-size:2.25rem;letter-spacing:-.03em;}
+    .splash-tagline{font-size:.8125rem;color:var(--on-surface-variant);letter-spacing:.06em;text-transform:uppercase;animation:fadeIn .8s .3s both;}
+    .splash-bar{width:140px;height:2px;background:var(--surface-container);border-radius:var(--radius-full);overflow:hidden;}
+    .splash-bar-fill{height:100%;background:var(--gradient-cta);border-radius:var(--radius-full);animation:loadBar 1.3s cubic-bezier(.4,0,.2,1) forwards;}
+    @keyframes splashEntry{from{opacity:0;transform:scale(.85) translateY(20px)}to{opacity:1;transform:none}}
+    @keyframes loadBar{from{width:0}to{width:100%}}
+
+    /* Layout */
+    .main{grid-area:main;padding:2rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
+    .aside{grid-area:aside;background:var(--surface-container-low);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;}
+    .aside-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.5rem;border:1px solid rgba(72,72,71,.12);}
+    .stagger-aside{opacity:0;animation:slideUp .5s cubic-bezier(.4,0,.2,1) forwards;}
+    .stagger-aside:nth-child(1){animation-delay:.4s;}
+    .stagger-aside:nth-child(2){animation-delay:.6s;}
+    .stagger-aside:nth-child(3){animation-delay:.8s;}
+
+    /* Hero */
+    .hero{background:var(--surface-container);border-radius:var(--radius-xl);padding:2.5rem;position:relative;overflow:hidden;}
+    #heroCanvas{position:absolute;inset:0;width:100%!important;height:100%!important;pointer-events:none;}
+    .hero-content{position:relative;z-index:1;}
+    .hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;}
+    .balance-num{font-family:'Manrope',sans-serif;font-size:clamp(2.5rem,5vw,4.5rem);font-weight:800;line-height:1;letter-spacing:-.03em;}
+    .balance-sup{font-size:1.5rem;font-weight:700;color:var(--on-surface-variant);vertical-align:super;line-height:1;margin-right:.15rem;}
+    .hero-change{display:inline-flex;align-items:center;gap:.3rem;background:rgba(63,255,139,.1);color:var(--primary);border-radius:var(--radius-full);padding:.25rem .65rem;font-size:.75rem;font-weight:600;margin-left:.75rem;vertical-align:middle;}
+    .hero-badge{background:rgba(63,255,139,.08);border:1px solid rgba(63,255,139,.15);border-radius:var(--radius-full);padding:.35rem .875rem;font-size:.75rem;font-weight:600;color:var(--primary);white-space:nowrap;}
+    .hero-actions{display:flex;gap:.75rem;flex-wrap:wrap;}
+
+    /* Cards Grid */
+    .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
+    .card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;}
+    .card-amount{font-family:'Manrope',sans-serif;font-size:1.875rem;font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:.25rem;}
+
+    /* Sparkline */
+    .sparkline-wrap{margin-top:1rem;}
+    .sparkline{width:100%;height:36px;overflow:visible;}
+    .sparkline-path{stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1) .2s;}
+
+    /* Transactions */
+    .tx-list{display:flex;flex-direction:column;}
+    .tx-item{display:flex;align-items:center;gap:1rem;padding:1rem 0;cursor:pointer;transition:background .15s;border-radius:var(--radius-md);}
+    .tx-item:hover{background:rgba(255,255,255,.02);margin:0 -.75rem;padding-left:.75rem;padding-right:.75rem;}
+    .tx-icon{width:44px;height:44px;border-radius:var(--radius-md);background:var(--surface-container-high);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+    .tx-info{flex:1;min-width:0;}
+    .tx-name{font-size:.9375rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .tx-meta{display:flex;gap:.5rem;align-items:center;margin-top:.2rem;}
+    .tx-cat{font-size:.6875rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--on-surface-variant);}
+    .tx-dot{width:3px;height:3px;border-radius:50%;background:var(--outline-variant);}
+    .tx-date{font-size:.6875rem;color:var(--on-surface-variant);}
+    .tx-amount{font-family:'Manrope',sans-serif;font-size:.9375rem;font-weight:700;text-align:right;flex-shrink:0;}
+    .tx-amount.credit{color:var(--primary);}
+
+    /* Charts */
+    .chart-bars{display:flex;align-items:flex-end;gap:.375rem;height:88px;margin-top:1rem;}
+    .chart-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:.35rem;}
+    .chart-bar{width:100%;border-radius:var(--radius-sm) var(--radius-sm) 0 0;transition:height .9s cubic-bezier(.4,0,.2,1);cursor:pointer;transition-property:height,opacity;}
+    .chart-bar:hover{opacity:.75;}
+    .chart-bar.active-bar{background:var(--gradient-cta);}
+    .chart-bar.dim-bar{background:var(--surface-bright);}
+    .chart-bar-lbl{font-size:.6rem;color:var(--on-surface-variant);}
+
+    /* Budget */
+    .budget-ring-wrap{display:flex;align-items:center;justify-content:center;position:relative;margin:1.25rem 0;}
+    .budget-ring-center{position:absolute;text-align:center;}
+    .budget-breakdown{display:flex;flex-direction:column;gap:.75rem;}
+    .budget-row{display:flex;align-items:center;gap:.75rem;}
+    .budget-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .budget-row-lbl{flex:1;font-size:.8125rem;color:var(--on-surface-variant);}
+    .budget-row-val{font-size:.8125rem;font-weight:600;}
+
+    /* Quick transfer */
+    .contact-row{display:flex;gap:.5rem;flex-wrap:wrap;}
+    .contact-av{width:40px;height:40px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;transition:transform .15s;}
+    .contact-av:hover{transform:scale(1.12);}
+    .add-contact-btn{width:40px;height:40px;border-radius:var(--radius-full);border:1px dashed rgba(72,72,71,.4);background:none;display:flex;align-items:center;justify-content:center;color:var(--on-surface-variant);transition:border-color .2s,color .2s;}
+    .add-contact-btn:hover{border-color:var(--primary);color:var(--primary);}
+  </style>
+</head>
+<body>
+
+<!-- Splash -->
+<div class="splash" id="splash">
+  <div class="splash-logo">
+    <div class="splash-mark"><svg width="26" height="26" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="7" height="10" rx="1.5" fill="#000"/><rect x="11" y="4" width="7" height="14" rx="1.5" fill="#000"/><circle cx="5.5" cy="5.5" r="3.5" fill="#000"/></svg></div>
+    <span class="splash-name">Vault</span>
+  </div>
+  <div class="splash-tagline">Your Digital Vault</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+</div>
+
+<div class="app-shell with-aside">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="7" height="10" rx="1.5" fill="#000"/><rect x="11" y="4" width="7" height="14" rx="1.5" fill="#000"/><circle cx="5.5" cy="5.5" r="3.5" fill="#000"/></svg></div>
+      <span class="logo-name">Vault</span>
+    </div>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Overview</span>
+      <a class="nav-item active" href="index.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="2" fill="currentColor"/><rect x="11" y="2" width="7" height="4" rx="2" fill="currentColor"/><rect x="2" y="13" width="7" height="5" rx="2" fill="currentColor"/><rect x="11" y="8" width="7" height="10" rx="2" fill="currentColor"/></svg>Dashboard</a>
+      <a class="nav-item" href="transactions.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Transactions</a>
+      <a class="nav-item" href="transfer.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M10 3l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Transfers</a>
+      <a class="nav-item" href="cards.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="5.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 9h15" stroke="currentColor" stroke-width="1.5"/></svg>Cards</a>
+    </nav>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Finance</span>
+      <a class="nav-item" href="analytics.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 14l4-5 4 3 3-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Analytics</a>
+      <a class="nav-item" href="budget.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M13 15h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 7V5.5a4 4 0 018 0V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Budget</a>
+      <a class="nav-item" href="investments.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M2 15l5-5 4 2 5-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Investments</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-avatar">NS</div>
+      <div style="flex:1;min-width:0;"><div class="sidebar-footer-name">Naman Sharma</div><div class="sidebar-footer-role">Premium Plan</div></div>
+    </div>
+  </aside>
+
+  <!-- Topnav -->
+  <header class="topnav">
+    <div><div class="headline-sm">Good morning, Naman</div><div class="body-sm mt-1">Wednesday, April 9 · 2026</div></div>
+    <div class="topnav-search"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--on-surface-variant);flex-shrink:0"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" placeholder="Search transactions, cards…"/><span style="font-size:.6875rem;color:var(--on-surface-variant);flex-shrink:0">⌘K</span></div>
+    <div class="topnav-right">
+      <div class="icon-btn"><div class="notif-dot"></div><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6zM8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="avatar">NS</div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Hero -->
+    <section class="hero stagger">
+      <canvas id="heroCanvas"></canvas>
+      <div class="hero-content">
+        <div class="hero-top">
+          <div>
+            <div class="label-sm mb-2">Total Net Worth</div>
+            <div class="balance-num"><span class="balance-sup">$</span><span id="heroBalance">0</span><span class="hero-change">↑ 2.4%</span></div>
+            <div class="body-sm mt-2">Across 4 accounts · Last updated just now</div>
+          </div>
+          <span class="hero-badge">All-time High ↑</span>
+        </div>
+        <div class="hero-actions">
+          <button class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add Money</button>
+          <button class="btn btn-secondary" onclick="location.href='transfer.html'"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M10 3l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Transfer</button>
+          <button class="btn btn-secondary"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="5.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 9h15" stroke="currentColor" stroke-width="1.5"/></svg>Pay Bill</button>
+          <button class="btn btn-tertiary">View Statements →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metric Cards -->
+    <div class="cards-grid">
+      <div class="fin-card stagger">
+        <div class="card-header"><div class="card-icon green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 14l4-5 4 3 3-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="card-pill up">↑ 8.2%</span></div>
+        <div class="label-sm mb-1">Savings Account</div>
+        <div class="card-amount" id="savingsAmt">$0</div>
+        <div class="body-sm">Monthly goal: $70,000</div>
+        <div class="sparkline-wrap">
+          <svg class="sparkline" viewBox="0 0 100 36" fill="none" preserveAspectRatio="none">
+            <defs><linearGradient id="sg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3fff8b" stop-opacity=".25"/><stop offset="100%" stop-color="#3fff8b" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,30 L12,24 L25,26 L38,18 L50,20 L62,12 L75,15 L88,8 L100,4 L100,36 L0,36 Z" fill="url(#sg1)"/>
+            <path class="sparkline-path" d="M0,30 L12,24 L25,26 L38,18 L50,20 L62,12 L75,15 L88,8 L100,4" stroke="#3fff8b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="mini-bar-track mt-2"><div class="mini-bar-fill green" style="width:0" data-w="89%"></div></div>
+      </div>
+
+      <div class="fin-card stagger">
+        <div class="card-header"><div class="card-icon yellow"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="5.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 9h15" stroke="currentColor" stroke-width="1.5"/></svg></div><span class="card-pill flat">→ 0.3%</span></div>
+        <div class="label-sm mb-1">Monthly Spending</div>
+        <div class="card-amount" id="spendAmt">$0</div>
+        <div class="body-sm">Budget remaining: $1,716</div>
+        <div class="sparkline-wrap">
+          <svg class="sparkline" viewBox="0 0 100 36" fill="none" preserveAspectRatio="none">
+            <defs><linearGradient id="sg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fdc003" stop-opacity=".25"/><stop offset="100%" stop-color="#fdc003" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,10 L12,18 L25,14 L38,22 L50,16 L62,24 L75,20 L88,26 L100,22 L100,36 L0,36 Z" fill="url(#sg2)"/>
+            <path class="sparkline-path" d="M0,10 L12,18 L25,14 L38,22 L50,16 L62,24 L75,20 L88,26 L100,22" stroke="#fdc003" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="mini-bar-track mt-2"><div class="mini-bar-fill yellow" style="width:0" data-w="66%"></div></div>
+      </div>
+
+      <div class="fin-card stagger">
+        <div class="card-header"><div class="card-icon red"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 7v3.5M10 13.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><span class="card-pill down">↓ 1.1%</span></div>
+        <div class="label-sm mb-1">Active Loans</div>
+        <div class="card-amount text-tertiary" id="loanAmt">$0</div>
+        <div class="body-sm">Due in 14 months</div>
+        <div class="sparkline-wrap">
+          <svg class="sparkline" viewBox="0 0 100 36" fill="none" preserveAspectRatio="none">
+            <defs><linearGradient id="sg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ff716c" stop-opacity=".25"/><stop offset="100%" stop-color="#ff716c" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,5 L12,10 L25,8 L38,14 L50,18 L62,16 L75,22 L88,20 L100,26 L100,36 L0,36 Z" fill="url(#sg3)"/>
+            <path class="sparkline-path" d="M0,5 L12,10 L25,8 L38,14 L50,18 L62,16 L75,22 L88,20 L100,26" stroke="#ff716c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="mini-bar-track mt-2"><div class="mini-bar-fill red" style="width:0" data-w="34%"></div></div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <section class="stagger">
+      <div class="section-header mb-4">
+        <div><div class="headline-sm">Recent Transactions</div><div class="label-sm mt-1">April 2026</div></div>
+        <a href="transactions.html" class="btn btn-tertiary" style="font-size:.8125rem">View all →</a>
+      </div>
+      <div class="chips mb-4">
+        <button class="chip active">All</button>
+        <button class="chip">Food & Drink</button>
+        <button class="chip">Shopping</button>
+        <button class="chip">Transport</button>
+        <button class="chip">Subscriptions</button>
+      </div>
+      <div style="background:var(--surface-container);border-radius:var(--radius-xl);padding:.25rem 1.5rem;border:1px solid rgba(72,72,71,.12)">
+        <div class="tx-list">
+          <div class="tx-item"><div class="tx-icon">☕</div><div class="tx-info"><div class="tx-name">Blue Bottle Coffee</div><div class="tx-meta"><span class="tx-cat">Food</span><span class="tx-dot"></span><span class="tx-date">Today 9:14 AM</span></div></div><div class="tx-amount">−$6.50</div></div>
+          <div class="tx-item" style="background:rgba(63,255,139,.025);margin:0 -1.5rem;padding-left:1.5rem;padding-right:1.5rem;"><div class="tx-icon">💼</div><div class="tx-info"><div class="tx-name">Payroll — April</div><div class="tx-meta"><span class="tx-cat">Income</span><span class="tx-dot"></span><span class="tx-date">Today 8:00 AM</span></div></div><div class="tx-amount credit">+$9,200.00</div></div>
+          <div class="tx-item"><div class="tx-icon">🚕</div><div class="tx-info"><div class="tx-name">Uber</div><div class="tx-meta"><span class="tx-cat">Transport</span><span class="tx-dot"></span><span class="tx-date">Yesterday</span></div></div><div class="tx-amount">−$14.20</div></div>
+          <div class="tx-item"><div class="tx-icon">🎵</div><div class="tx-info"><div class="tx-name">Spotify Premium</div><div class="tx-meta"><span class="tx-cat">Subscriptions</span><span class="tx-dot"></span><span class="tx-date">Apr 8</span></div></div><div class="tx-amount">−$10.99</div></div>
+          <div class="tx-item"><div class="tx-icon">🛒</div><div class="tx-info"><div class="tx-name">Whole Foods Market</div><div class="tx-meta"><span class="tx-cat">Shopping</span><span class="tx-dot"></span><span class="tx-date">Apr 7</span></div></div><div class="tx-amount">−$87.35</div></div>
+          <div class="tx-item"><div class="tx-icon">🏠</div><div class="tx-info"><div class="tx-name">Rent — April</div><div class="tx-meta"><span class="tx-cat">Housing</span><span class="tx-dot"></span><span class="tx-date">Apr 1</span></div></div><div class="tx-amount">−$2,100.00</div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Aside -->
+  <aside class="aside">
+
+    <div class="aside-card stagger-aside">
+      <div class="section-header"><div class="title-md">Spending</div><span class="label-sm">6 months</span></div>
+      <div class="chart-bars">
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b1" style="height:0"></div><span class="chart-bar-lbl">Nov</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b2" style="height:0"></div><span class="chart-bar-lbl">Dec</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b3" style="height:0"></div><span class="chart-bar-lbl">Jan</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b4" style="height:0"></div><span class="chart-bar-lbl">Feb</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b5" style="height:0"></div><span class="chart-bar-lbl">Mar</span></div>
+        <div class="chart-bar-col"><div class="chart-bar active-bar" id="b6" style="height:0"></div><span class="chart-bar-lbl text-primary">Apr</span></div>
+      </div>
+    </div>
+
+    <div class="aside-card stagger-aside">
+      <div class="title-md">Budget Health</div>
+      <div class="budget-ring-wrap">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="44" fill="none" stroke="var(--surface-container-high)" stroke-width="10"/>
+          <circle id="budgetRing" cx="55" cy="55" r="44" fill="none" stroke="url(#ringGrad)" stroke-width="10" stroke-dasharray="276" stroke-dashoffset="276" stroke-linecap="round" transform="rotate(-90 55 55)" style="transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1) .4s"/>
+          <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#3fff8b"/><stop offset="100%" stop-color="#13ea79"/></linearGradient></defs>
+        </svg>
+        <div class="budget-ring-center"><div style="font-family:'Manrope',sans-serif;font-size:1.4rem;font-weight:800;line-height:1" id="budgetPct">0%</div><div class="label-sm mt-1">Used</div></div>
+      </div>
+      <div class="budget-breakdown">
+        <div class="budget-row"><div class="budget-dot" style="background:var(--primary)"></div><span class="budget-row-lbl">Housing</span><span class="budget-row-val">$2,100</span></div>
+        <div class="budget-row"><div class="budget-dot" style="background:var(--secondary)"></div><span class="budget-row-lbl">Food & Drink</span><span class="budget-row-val">$620</span></div>
+        <div class="budget-row"><div class="budget-dot" style="background:var(--tertiary)"></div><span class="budget-row-lbl">Transport</span><span class="budget-row-val">$284</span></div>
+        <div class="budget-row"><div class="budget-dot" style="background:var(--surface-bright)"></div><span class="budget-row-lbl">Other</span><span class="budget-row-val">$280</span></div>
+      </div>
+    </div>
+
+    <div class="aside-card stagger-aside">
+      <div class="title-md mb-3">Quick Transfer</div>
+      <div class="contact-row mb-3">
+        <div class="contact-av" style="background:rgba(63,255,139,.15);color:var(--primary)">AK</div>
+        <div class="contact-av" style="background:rgba(253,192,3,.15);color:var(--secondary)">SR</div>
+        <div class="contact-av" style="background:rgba(255,113,108,.15);color:var(--tertiary)">PM</div>
+        <div class="contact-av" style="background:rgba(100,180,255,.15);color:#64b4ff">JL</div>
+        <button class="add-contact-btn"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="input-wrap mb-3"><input type="text" class="input-field" placeholder="Enter amount…"/></div>
+      <button class="btn btn-primary w-full" style="justify-content:center" onclick="location.href='transfer.html'">Send Money</button>
+    </div>
+
+  </aside>
+
+</div>
+
+<script>
+/* ── Splash ─────────────────────────────────────────── */
+setTimeout(() => {
+  const s = document.getElementById('splash');
+  s.classList.add('out');
+  setTimeout(() => { s.remove(); run(); }, 650);
+}, 1500);
+
+/* ── Particles ──────────────────────────────────────── */
+(function() {
+  const cv = document.getElementById('heroCanvas');
+  const cx = cv.getContext('2d');
+  let W, H, pts = [];
+  const resize = () => { W = cv.width = cv.offsetWidth; H = cv.height = cv.offsetHeight; };
+  class P {
+    reset() { this.x=Math.random()*W; this.y=Math.random()*H; this.vx=(Math.random()-.5)*.22; this.vy=(Math.random()-.5)*.22; this.r=Math.random()*1.2+.3; this.ml=Math.random()*280+80; this.l=0; this.op=Math.random()*.35+.06; }
+    tick() { this.x+=this.vx; this.y+=this.vy; this.l++; if(this.l>this.ml||this.x<0||this.x>W||this.y<0||this.y>H) this.reset(); }
+    draw() { const a=Math.sin((this.l/this.ml)*Math.PI)*this.op; cx.beginPath(); cx.arc(this.x,this.y,this.r,0,Math.PI*2); cx.fillStyle=`rgba(63,255,139,${a})`; cx.fill(); }
+  }
+  resize(); for(let i=0;i<55;i++){const p=new P();p.reset();p.l=Math.random()*p.ml;pts.push(p);}
+  window.addEventListener('resize',resize);
+  (function loop(){cx.clearRect(0,0,W,H);pts.forEach(p=>{p.tick();p.draw();});requestAnimationFrame(loop);})();
+})();
+
+/* ── Count-up ────────────────────────────────────────── */
+function cu(el, target, pre='$', dec=0, dur=1600) {
+  const t0=performance.now();
+  const fmt=n=>pre+n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  (function u(now){const p=Math.min((now-t0)/dur,1),e=1-Math.pow(1-p,4);el.textContent=fmt(target*e);if(p<1)requestAnimationFrame(u);else el.textContent=fmt(target);})(t0);
+}
+
+/* ── Bar Chart ───────────────────────────────────────── */
+function animBars() {
+  [48,62,55,72,58,80].forEach((h,i)=>setTimeout(()=>document.getElementById('b'+(i+1)).style.height=h+'px',i*90));
+}
+
+/* ── Budget ──────────────────────────────────────────── */
+function animBudget() {
+  document.getElementById('budgetRing').style.strokeDashoffset=276*(1-.70);
+  let v=0; const iv=setInterval(()=>{v=Math.min(v+2,70);document.getElementById('budgetPct').textContent=v+'%';if(v>=70)clearInterval(iv);},22);
+}
+
+/* ── Sparklines ──────────────────────────────────────── */
+function animSpark() {
+  document.querySelectorAll('.sparkline-path').forEach(p=>{
+    const l=p.getTotalLength();
+    p.style.strokeDasharray=l; p.style.strokeDashoffset=l;
+    setTimeout(()=>{p.style.transition='stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1)';p.style.strokeDashoffset=0;},200);
+  });
+}
+
+/* ── Progress bars ───────────────────────────────────── */
+function animProg() {
+  document.querySelectorAll('.mini-bar-fill').forEach(e=>setTimeout(()=>e.style.width=e.dataset.w,400));
+}
+
+/* ── Chips ───────────────────────────────────────────── */
+document.querySelectorAll('.chips .chip').forEach(c=>c.addEventListener('click',()=>{c.closest('.chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');}));
+
+function run() {
+  cu(document.getElementById('heroBalance'),184920.48,'$',2,1800);
+  cu(document.getElementById('savingsAmt'),62400,'$',0,1400);
+  cu(document.getElementById('spendAmt'),3284,'$',0,1400);
+  cu(document.getElementById('loanAmt'),8500,'$',0,1400);
+  setTimeout(animBars,250); setTimeout(animBudget,450); setTimeout(animSpark,200); setTimeout(animProg,350);
+}
+</script>
+</body>
+</html>

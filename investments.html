@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Investments — Vault</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .main{grid-area:main;padding:2rem 2.5rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
+    .aside{grid-area:aside;background:var(--surface-container-low);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;}
+    .aside-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.5rem;border:1px solid rgba(72,72,71,.12);}
+    .stagger-aside{opacity:0;animation:slideUp .5s cubic-bezier(.4,0,.2,1) forwards;}
+    .stagger-aside:nth-child(1){animation-delay:.2s;}
+    .stagger-aside:nth-child(2){animation-delay:.4s;}
+    .stagger-aside:nth-child(3){animation-delay:.6s;}
+
+    /* Hero */
+    .invest-hero{
+      background:var(--surface-container);
+      border-radius:var(--radius-xl);
+      padding:2.5rem;
+      position:relative;overflow:hidden;
+    }
+    .invest-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(63,255,139,.06) 0%,transparent 70%);pointer-events:none;}
+    .invest-hero::after{content:'';position:absolute;bottom:-60px;left:30%;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(253,192,3,.04) 0%,transparent 70%);pointer-events:none;}
+    .hero-row{display:flex;align-items:flex-end;justify-content:space-between;position:relative;z-index:1;}
+    .portfolio-val{font-family:'Manrope',sans-serif;font-size:clamp(2.5rem,5vw,4rem);font-weight:800;line-height:1;letter-spacing:-.03em;}
+    .portfolio-sup{font-size:1.5rem;font-weight:700;color:var(--on-surface-variant);vertical-align:super;line-height:1;margin-right:.15rem;}
+    .pnl-badge{display:inline-flex;align-items:center;gap:.35rem;border-radius:var(--radius-full);padding:.35rem .875rem;font-size:.875rem;font-weight:700;font-family:'Manrope',sans-serif;}
+    .pnl-badge.pos{background:rgba(63,255,139,.12);color:var(--primary);}
+    .pnl-badge.neg{background:rgba(255,113,108,.12);color:var(--tertiary);}
+
+    /* Mini chart in hero */
+    .hero-chart{width:200px;height:60px;flex-shrink:0;}
+    .hero-chart-path{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1) .3s;}
+
+    /* Stats bar */
+    .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+    .sb-tile{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.25rem 1.5rem;border:1px solid rgba(72,72,71,.12);transition:transform .2s,box-shadow .2s;}
+    .sb-tile:hover{transform:translateY(-3px);box-shadow:var(--shadow-card);}
+    .sb-val{font-family:'Manrope',sans-serif;font-size:1.375rem;font-weight:800;letter-spacing:-.02em;margin:.3rem 0 .2rem;}
+
+    /* Holdings table */
+    .holdings-wrap{background:var(--surface-container);border-radius:var(--radius-xl);border:1px solid rgba(72,72,71,.12);overflow:hidden;}
+    .holdings-head{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:1rem;padding:1rem 1.5rem;border-bottom:1px solid rgba(72,72,71,.1);}
+    .holdings-head span{font-size:.6875rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--on-surface-variant);}
+    .holding-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 100px;gap:1rem;padding:1.125rem 1.5rem;align-items:center;cursor:pointer;transition:background .15s;opacity:0;transform:translateX(-16px);transition:background .15s,opacity .4s,transform .4s;}
+    .holding-row.visible{opacity:1;transform:none;}
+    .holding-row:hover{background:var(--surface-container-high);}
+    .holding-icon{width:38px;height:38px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8125rem;font-family:'Manrope',sans-serif;flex-shrink:0;}
+    .holding-name{font-size:.9375rem;font-weight:600;}
+    .holding-sub{font-size:.75rem;color:var(--on-surface-variant);margin-top:.15rem;}
+    .holding-price{font-family:'Manrope',sans-serif;font-size:.9375rem;font-weight:700;}
+    .holding-change{font-family:'Manrope',sans-serif;font-size:.875rem;font-weight:700;transition:color .3s;}
+    .holding-change.flash-green{animation:flashGreen .5s ease;}
+    .holding-change.flash-red{animation:flashRed .5s ease;}
+    @keyframes flashGreen{0%,100%{background:none}50%{background:rgba(63,255,139,.15);border-radius:4px;}}
+    @keyframes flashRed  {0%,100%{background:none}50%{background:rgba(255,113,108,.15);border-radius:4px;}}
+    .holding-value{font-family:'Manrope',sans-serif;font-size:.9375rem;font-weight:700;}
+
+    /* Sparkline */
+    .spark{width:90px;height:32px;overflow:visible;}
+    .spark-path{stroke-dasharray:300;stroke-dashoffset:300;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);}
+
+    /* Donut */
+    .alloc-wrap{display:flex;align-items:center;gap:1.25rem;}
+    .alloc-legend{display:flex;flex-direction:column;gap:.6rem;flex:1;}
+    .alloc-row{display:flex;align-items:center;gap:.6rem;}
+    .alloc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .alloc-lbl{flex:1;font-size:.8125rem;color:var(--on-surface-variant);}
+    .alloc-pct{font-size:.8125rem;font-weight:700;}
+
+    /* Top movers */
+    .mover-row{display:flex;align-items:center;gap:.75rem;padding:.75rem 0;}
+    .mover-icon{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;font-family:'Manrope',sans-serif;}
+    .mover-info{flex:1;min-width:0;}
+    .mover-name{font-size:.875rem;font-weight:600;}
+    .mover-ticker{font-size:.6875rem;color:var(--on-surface-variant);}
+    .mover-chg{font-family:'Manrope',sans-serif;font-size:.875rem;font-weight:700;}
+  </style>
+</head>
+<body>
+<div class="app-shell with-aside">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="7" height="10" rx="1.5" fill="#000"/><rect x="11" y="4" width="7" height="14" rx="1.5" fill="#000"/><circle cx="5.5" cy="5.5" r="3.5" fill="#000"/></svg></div><span class="logo-name">Vault</span></div>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Overview</span>
+      <a class="nav-item" href="index.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="2" fill="currentColor"/><rect x="11" y="2" width="7" height="4" rx="2" fill="currentColor"/><rect x="2" y="13" width="7" height="5" rx="2" fill="currentColor"/><rect x="11" y="8" width="7" height="10" rx="2" fill="currentColor"/></svg>Dashboard</a>
+      <a class="nav-item" href="transactions.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Transactions</a>
+      <a class="nav-item" href="transfer.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M10 3l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Transfers</a>
+      <a class="nav-item" href="cards.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="5.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 9h15" stroke="currentColor" stroke-width="1.5"/></svg>Cards</a>
+    </nav>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Finance</span>
+      <a class="nav-item" href="analytics.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 14l4-5 4 3 3-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Analytics</a>
+      <a class="nav-item" href="budget.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M13 15h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 7V5.5a4 4 0 018 0V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Budget</a>
+      <a class="nav-item active" href="investments.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M2 15l5-5 4 2 5-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Investments</a>
+    </nav>
+    <div class="sidebar-footer"><div class="sidebar-footer-avatar">NS</div><div style="flex:1;min-width:0;"><div class="sidebar-footer-name">Naman Sharma</div><div class="sidebar-footer-role">Premium Plan</div></div></div>
+  </aside>
+
+  <!-- Topnav -->
+  <header class="topnav">
+    <div><div class="headline-sm">Investments</div><div class="body-sm mt-1">Portfolio overview · Live prices</div></div>
+    <div class="topnav-search"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--on-surface-variant);flex-shrink:0"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" placeholder="Search stocks, ETFs…"/></div>
+    <div class="topnav-right"><div class="icon-btn"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6zM8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="avatar">NS</div></div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Hero -->
+    <div class="invest-hero stagger">
+      <div class="hero-row">
+        <div>
+          <div class="label-sm mb-2">Total Portfolio Value</div>
+          <div class="portfolio-val"><span class="portfolio-sup">$</span><span id="portVal">0</span></div>
+          <div style="display:flex;align-items:center;gap:.875rem;margin-top:.875rem;">
+            <span class="pnl-badge pos">↑ $4,280 today</span>
+            <span class="pnl-badge pos">+18.4% all time</span>
+          </div>
+          <div class="body-sm mt-2">Last updated: Live · Market open</div>
+        </div>
+        <svg class="hero-chart" viewBox="0 0 200 60" fill="none">
+          <defs><linearGradient id="hcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3fff8b" stop-opacity=".15"/><stop offset="100%" stop-color="#3fff8b" stop-opacity="0"/></linearGradient></defs>
+          <path d="M0,55 L25,48 L50,42 L75,38 L100,30 L125,22 L150,18 L175,10 L200,6 L200,60 L0,60Z" fill="url(#hcg)"/>
+          <path class="hero-chart-path" id="heroChartLine" d="M0,55 L25,48 L50,42 L75,38 L100,30 L125,22 L150,18 L175,10 L200,6" stroke="#3fff8b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div style="display:flex;gap:.75rem;margin-top:1.75rem;position:relative;z-index:1;">
+        <button class="btn btn-primary"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Buy</button>
+        <button class="btn btn-secondary"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 16V4M4 10l6-6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Sell</button>
+        <button class="btn btn-secondary">Rebalance</button>
+        <button class="btn btn-tertiary">Download Report →</button>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="sb-tile stagger"><div class="label-sm">Day P&L</div><div class="sb-val text-primary" id="dayPnl">$0</div><span class="tag tag-success">+1.82%</span></div>
+      <div class="sb-tile stagger"><div class="label-sm">Total P&L</div><div class="sb-val text-primary" id="totalPnl">$0</div><span class="tag tag-success">+18.4%</span></div>
+      <div class="sb-tile stagger"><div class="label-sm">Invested</div><div class="sb-val" id="invested">$0</div><div class="body-sm">Cost basis</div></div>
+      <div class="sb-tile stagger"><div class="label-sm">Dividend YTD</div><div class="sb-val text-secondary" id="divYtd">$0</div><div class="body-sm">Reinvested</div></div>
+    </div>
+
+    <!-- Holdings -->
+    <div class="stagger">
+      <div class="section-header mb-4">
+        <div><div class="headline-sm">Holdings</div><div class="label-sm mt-1">8 positions · Prices update every 3s</div></div>
+        <div style="display:flex;gap:.75rem;">
+          <div class="chips">
+            <button class="chip active">All</button>
+            <button class="chip">Stocks</button>
+            <button class="chip">ETFs</button>
+            <button class="chip">Crypto</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="holdings-wrap">
+        <div class="holdings-head">
+          <span>Asset</span>
+          <span>Price</span>
+          <span>24h Change</span>
+          <span>Value</span>
+          <span>Trend</span>
+        </div>
+
+        <!-- Holdings rows -->
+        <div class="holding-row" data-ticker="AAPL" data-price="189.42" data-chg="1.24" data-val="14840">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(100,180,255,.12);color:#64b4ff">AAPL</div><div><div class="holding-name">Apple Inc.</div><div class="holding-sub">78.4 shares · Nasdaq</div></div></div>
+          <div class="holding-price">$<span class="price-val">189.42</span></div>
+          <div class="holding-change text-primary">+<span class="chg-val">1.24</span>%</div>
+          <div class="holding-value">$<span class="val-display">14,840</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,28 L15,22 L30,20 L45,14 L60,16 L75,8 L90,5" stroke="#3fff8b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="MSFT" data-price="418.85" data-chg="0.87" data-val="20943">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(63,255,139,.1);color:var(--primary)">MSFT</div><div><div class="holding-name">Microsoft Corp.</div><div class="holding-sub">50 shares · Nasdaq</div></div></div>
+          <div class="holding-price">$<span class="price-val">418.85</span></div>
+          <div class="holding-change text-primary">+<span class="chg-val">0.87</span>%</div>
+          <div class="holding-value">$<span class="val-display">20,943</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,24 L15,20 L30,18 L45,22 L60,14 L75,10 L90,7" stroke="#3fff8b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="NVDA" data-price="875.40" data-chg="3.21" data-val="17508">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(167,139,250,.12);color:#a78bfa">NVDA</div><div><div class="holding-name">NVIDIA Corp.</div><div class="holding-sub">20 shares · Nasdaq</div></div></div>
+          <div class="holding-price">$<span class="price-val">875.40</span></div>
+          <div class="holding-change text-primary">+<span class="chg-val">3.21</span>%</div>
+          <div class="holding-value">$<span class="val-display">17,508</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,30 L15,26 L30,20 L45,12 L60,8 L75,5 L90,3" stroke="#3fff8b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="TSLA" data-price="172.63" data-chg="-2.14" data-val="8632">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(255,113,108,.1);color:var(--tertiary)">TSLA</div><div><div class="holding-name">Tesla Inc.</div><div class="holding-sub">50 shares · Nasdaq</div></div></div>
+          <div class="holding-price">$<span class="price-val">172.63</span></div>
+          <div class="holding-change text-tertiary">−<span class="chg-val">2.14</span>%</div>
+          <div class="holding-value">$<span class="val-display">8,632</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,5 L15,8 L30,12 L45,10 L60,18 L75,22 L90,26" stroke="#ff716c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="VOO" data-price="484.20" data-chg="0.62" data-val="24210">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(253,192,3,.1);color:var(--secondary)">VOO</div><div><div class="holding-name">Vanguard S&P 500</div><div class="holding-sub">50 shares · ETF</div></div></div>
+          <div class="holding-price">$<span class="price-val">484.20</span></div>
+          <div class="holding-change text-primary">+<span class="chg-val">0.62</span>%</div>
+          <div class="holding-value">$<span class="val-display">24,210</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,22 L15,20 L30,18 L45,16 L60,13 L75,11 L90,9" stroke="#fdc003" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="BTC" data-price="68420.00" data-chg="4.55" data-val="13684">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(253,192,3,.12);color:var(--secondary)">BTC</div><div><div class="holding-name">Bitcoin</div><div class="holding-sub">0.2 BTC · Crypto</div></div></div>
+          <div class="holding-price">$<span class="price-val">68,420</span></div>
+          <div class="holding-change text-primary">+<span class="chg-val">4.55</span>%</div>
+          <div class="holding-value">$<span class="val-display">13,684</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,28 L15,20 L30,24 L45,14 L60,8 L75,12 L90,4" stroke="#fdc003" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="AMZN" data-price="184.92" data-chg="1.08" data-val="9246">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(52,211,153,.12);color:#34d399">AMZN</div><div><div class="holding-name">Amazon.com Inc.</div><div class="holding-sub">50 shares · Nasdaq</div></div></div>
+          <div class="holding-price">$<span class="price-val">184.92</span></div>
+          <div class="holding-change text-primary">+<span class="chg-val">1.08</span>%</div>
+          <div class="holding-value">$<span class="val-display">9,246</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,20 L15,22 L30,16 L45,18 L60,12 L75,9 L90,7" stroke="#3fff8b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+        <div class="holding-row" data-ticker="ETH" data-price="3240.50" data-chg="-0.93" data-val="6481">
+          <div style="display:flex;align-items:center;gap:.875rem;"><div class="holding-icon" style="background:rgba(100,180,255,.12);color:#64b4ff">ETH</div><div><div class="holding-name">Ethereum</div><div class="holding-sub">2 ETH · Crypto</div></div></div>
+          <div class="holding-price">$<span class="price-val">3,240</span></div>
+          <div class="holding-change text-tertiary">−<span class="chg-val">0.93</span>%</div>
+          <div class="holding-value">$<span class="val-display">6,481</span></div>
+          <svg class="spark" viewBox="0 0 90 32" fill="none"><path class="spark-path" d="M0,10 L15,12 L30,14 L45,16 L60,18 L75,20 L90,22" stroke="#ff716c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Aside -->
+  <aside class="aside">
+
+    <div class="aside-card stagger-aside">
+      <div class="title-md mb-1">Allocation</div>
+      <div class="alloc-wrap" style="margin-top:1.25rem;">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="var(--surface-container-high)" stroke-width="14"/>
+          <circle id="a1" cx="50" cy="50" r="38" fill="none" stroke="#64b4ff"  stroke-width="14" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="butt" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s .1s ease"/>
+          <circle id="a2" cx="50" cy="50" r="38" fill="none" stroke="#3fff8b"  stroke-width="14" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="butt" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s .3s ease"/>
+          <circle id="a3" cx="50" cy="50" r="38" fill="none" stroke="#fdc003"  stroke-width="14" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="butt" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s .5s ease"/>
+          <circle id="a4" cx="50" cy="50" r="38" fill="none" stroke="#a78bfa"  stroke-width="14" stroke-dasharray="239" stroke-dashoffset="239" stroke-linecap="butt" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1s .7s ease"/>
+        </svg>
+        <div class="alloc-legend">
+          <div class="alloc-row"><div class="alloc-dot" style="background:#64b4ff"></div><span class="alloc-lbl">US Stocks</span><span class="alloc-pct">52%</span></div>
+          <div class="alloc-row"><div class="alloc-dot" style="background:#3fff8b"></div><span class="alloc-lbl">ETFs</span><span class="alloc-pct">23%</span></div>
+          <div class="alloc-row"><div class="alloc-dot" style="background:#fdc003"></div><span class="alloc-lbl">Crypto</span><span class="alloc-pct">19%</span></div>
+          <div class="alloc-row"><div class="alloc-dot" style="background:#a78bfa"></div><span class="alloc-lbl">Other</span><span class="alloc-pct">6%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="aside-card stagger-aside">
+      <div class="title-md mb-3">Top Movers</div>
+      <div class="mover-row">
+        <div class="mover-icon" style="background:rgba(167,139,250,.12);color:#a78bfa">NVDA</div>
+        <div class="mover-info"><div class="mover-name">NVIDIA</div><div class="mover-ticker">Nasdaq · Tech</div></div>
+        <div class="mover-chg text-primary" id="m1">+3.21%</div>
+      </div>
+      <div style="height:1px;background:rgba(72,72,71,.1)"></div>
+      <div class="mover-row">
+        <div class="mover-icon" style="background:rgba(253,192,3,.12);color:var(--secondary)">BTC</div>
+        <div class="mover-info"><div class="mover-name">Bitcoin</div><div class="mover-ticker">Crypto</div></div>
+        <div class="mover-chg text-primary" id="m2">+4.55%</div>
+      </div>
+      <div style="height:1px;background:rgba(72,72,71,.1)"></div>
+      <div class="mover-row">
+        <div class="mover-icon" style="background:rgba(255,113,108,.1);color:var(--tertiary)">TSLA</div>
+        <div class="mover-info"><div class="mover-name">Tesla</div><div class="mover-ticker">Nasdaq · Auto</div></div>
+        <div class="mover-chg text-tertiary" id="m3">−2.14%</div>
+      </div>
+      <div style="height:1px;background:rgba(72,72,71,.1)"></div>
+      <div class="mover-row">
+        <div class="mover-icon" style="background:rgba(100,180,255,.12);color:#64b4ff">ETH</div>
+        <div class="mover-info"><div class="mover-name">Ethereum</div><div class="mover-ticker">Crypto</div></div>
+        <div class="mover-chg text-tertiary" id="m4">−0.93%</div>
+      </div>
+    </div>
+
+    <div class="aside-card stagger-aside">
+      <div class="title-md mb-3">Quick Invest</div>
+      <div class="input-wrap mb-3">
+        <label class="input-label">Symbol</label>
+        <input type="text" class="input-field" placeholder="AAPL, MSFT, BTC…" style="text-transform:uppercase;"/>
+      </div>
+      <div class="input-wrap mb-3">
+        <label class="input-label">Amount</label>
+        <input type="text" class="input-field" placeholder="$0.00"/>
+      </div>
+      <button class="btn btn-primary w-full" style="justify-content:center">Buy Now</button>
+    </div>
+
+  </aside>
+</div>
+
+<script>
+/* Count-up */
+function cu(id, val, pre='$', dec=0) {
+  const el=document.getElementById(id); if(!el)return;
+  const t0=performance.now();
+  (function u(now){const p=Math.min((now-t0)/1400,1),e=1-Math.pow(1-p,4);el.textContent=pre+(val*e).toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');if(p<1)requestAnimationFrame(u);else el.textContent=pre+val.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');})(t0);
+}
+setTimeout(()=>{
+  cu('portVal',109544,'',2);
+  cu('dayPnl',4280,'$',2);
+  cu('totalPnl',17064,'$',2);
+  cu('invested',92480,'$',2);
+  cu('divYtd',842,'$',2);
+},200);
+
+/* Hero chart */
+setTimeout(()=>{
+  const p=document.getElementById('heroChartLine');
+  const l=p.getTotalLength();
+  p.style.strokeDasharray=l; p.style.strokeDashoffset=l;
+  p.style.transition='stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1)';
+  p.style.strokeDashoffset=0;
+},300);
+
+/* Sparklines */
+setTimeout(()=>{
+  document.querySelectorAll('.spark-path').forEach(p=>{
+    const l=p.getTotalLength();
+    p.style.strokeDasharray=l; p.style.strokeDashoffset=l;
+    p.style.transition='stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)';
+    p.style.strokeDashoffset=0;
+  });
+},600);
+
+/* Scroll-reveal holdings */
+const obs=new IntersectionObserver(entries=>entries.forEach((e,i)=>{
+  if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),i*80);obs.unobserve(e.target);}
+}),{threshold:0.1});
+document.querySelectorAll('.holding-row').forEach(r=>obs.observe(r));
+
+/* Allocation donut */
+setTimeout(()=>{
+  const c=239;
+  [{id:'a1',pct:.52,off:0},{id:'a2',pct:.23,off:.52},{id:'a3',pct:.19,off:.75},{id:'a4',pct:.06,off:.94}].forEach(s=>{
+    const el=document.getElementById(s.id);
+    el.setAttribute('stroke-dasharray',`${c*s.pct} ${c*(1-s.pct)}`);
+    el.setAttribute('transform',`rotate(${-90+360*s.off} 50 50)`);
+    el.style.strokeDashoffset=0;
+  });
+},300);
+
+/* Chips */
+document.querySelectorAll('.chips .chip').forEach(c=>c.addEventListener('click',()=>{c.closest('.chips').querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');}));
+
+/* Live ticker simulation */
+const rows=document.querySelectorAll('.holding-row');
+function tickerUpdate(){
+  rows.forEach(row=>{
+    if(Math.random()>0.45) return;
+    const chgEl=row.querySelector('.chg-val');
+    const baseChg=parseFloat(row.dataset.chg);
+    const newChg=(baseChg+(Math.random()-.5)*0.3).toFixed(2);
+    const pos=parseFloat(newChg)>=0;
+    chgEl.textContent=Math.abs(newChg);
+    const parent=row.querySelector('.holding-change');
+    parent.className='holding-change '+(pos?'text-primary':'text-tertiary');
+    parent.innerHTML=(pos?'+':'−')+'<span class="chg-val">'+Math.abs(newChg)+'</span>%';
+    parent.classList.add(pos?'flash-green':'flash-red');
+    setTimeout(()=>parent.classList.remove('flash-green','flash-red'),520);
+  });
+}
+setInterval(tickerUpdate,3000);
+</script>
+</body>
+</html>
