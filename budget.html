@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Budget — Vault</title>
   <link rel="stylesheet" href="styles.css"/>
+  <script src="vault-data.js"></script>
   <style>
     .main{grid-area:main;padding:2rem 2.5rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
     .aside{grid-area:aside;background:var(--surface-container-low);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;}
@@ -230,10 +231,10 @@
 
       <div>
         <div class="headline-sm mb-1">Financial Health Score</div>
-        <div class="body-md mb-4">Based on your spending patterns, savings rate, and bill punctuality.</div>
+        <div class="body-md mb-4">Based on budget pace, savings rate, bill punctuality, and category risk.</div>
         <div class="health-metrics">
           <div class="hm-tile"><div class="label-sm">Savings Rate</div><div class="hm-val text-primary" id="savRate">0%</div></div>
-          <div class="hm-tile"><div class="label-sm">Budget Adherence</div><div class="hm-val text-secondary" id="budAdh">0%</div></div>
+          <div class="hm-tile"><div class="label-sm">Pace Score</div><div class="hm-val text-secondary" id="budAdh">0%</div></div>
           <div class="hm-tile"><div class="label-sm">Bills On-time</div><div class="hm-val text-primary">100%</div></div>
           <div class="hm-tile"><div class="label-sm">Debt Ratio</div><div class="hm-val">4.6%</div></div>
         </div>
@@ -244,8 +245,8 @@
     <div class="month-summary">
       <div class="ms-tile stagger"><div class="label-sm">Monthly Income</div><div class="ms-val text-primary" id="mIncome">$0</div><div class="body-sm">+Freelance</div></div>
       <div class="ms-tile stagger"><div class="label-sm">Total Budgeted</div><div class="ms-val" id="mBudget">$0</div><div class="body-sm">Across 7 categories</div></div>
-      <div class="ms-tile stagger"><div class="label-sm">Spent So Far</div><div class="ms-val" id="mSpent">$0</div><div class="body-sm">of budget used</div></div>
-      <div class="ms-tile stagger"><div class="label-sm">Projected Savings</div><div class="ms-val text-primary" id="mSave">$0</div><div class="body-sm">↑ 12% vs last month</div></div>
+      <div class="ms-tile stagger"><div class="label-sm">Spent So Far</div><div class="ms-val" id="mSpent">$0</div><div class="body-sm">66% of budget used</div></div>
+      <div class="ms-tile stagger"><div class="label-sm">Remaining Daily Cap</div><div class="ms-val text-primary" id="mSave">$0</div><div class="body-sm">for the next 21 days</div></div>
     </div>
 
     <!-- Budget Categories -->
@@ -521,22 +522,22 @@
 
       <div class="tip-card green">
         <div class="tip-icon">💡</div>
-        <div><div class="tip-title">Cancel unused subscriptions</div><div class="tip-desc">You're paying for 5 subscriptions. Cancelling 2 could save you $20+/mo.</div><div class="tip-saving text-primary">Potential saving: $240/yr</div></div>
+        <div><div class="tip-title">Keep subscriptions, but review renewals</div><div class="tip-desc">Subscriptions are only $36 of a $100 limit. The useful action is checking next renewals before they stack up.</div><div class="tip-saving text-primary">$64 monthly room left</div></div>
       </div>
 
       <div class="tip-card yellow">
         <div class="tip-icon">🍽️</div>
-        <div><div class="tip-title">Dining budget nearly full</div><div class="tip-desc">Only 21 days in and 81% of food budget is used. Cook at home 2 days/week.</div><div class="tip-saving text-secondary">Could save: $150/mo</div></div>
+        <div><div class="tip-title">Food pace is the main risk</div><div class="tip-desc">Food is already 81% used with 21 days left. Keep food spend under $9/day to finish inside the limit.</div><div class="tip-saving text-secondary">$190 remaining</div></div>
       </div>
 
       <div class="tip-card red">
         <div class="tip-icon">🚕</div>
-        <div><div class="tip-title">Transport almost over limit</div><div class="tip-desc">$16 left in transport budget. Consider increasing limit or using public transit.</div><div class="tip-saving text-tertiary">Adjust limit or switch modes</div></div>
+        <div><div class="tip-title">Transport needs a limit decision</div><div class="tip-desc">$16 remains against a $300 limit. Either freeze rideshares or raise the limit before the next commute charge.</div><div class="tip-saving text-tertiary">94% used</div></div>
       </div>
 
       <div class="tip-card green">
         <div class="tip-icon">🎯</div>
-        <div><div class="tip-title">MacBook goal almost done</div><div class="tip-desc">You're 80% of the way to your MacBook goal. Add $700 to hit it before May.</div><div class="tip-saving text-primary">Goal completion: May 2026</div></div>
+        <div><div class="tip-title">Goal funding is still healthy</div><div class="tip-desc">Emergency fund and MacBook goals are on track. Delay extra goal top-ups until food and transport normalize.</div><div class="tip-saving text-primary">Protects $1,768 budget room</div></div>
       </div>
     </div>
 
@@ -556,16 +557,16 @@ function cu(id, val, suf='', pre='', dec=0, dur=1200) {
 setTimeout(()=>{
   // Health score ring
   const ring=document.getElementById('scoreRing');
-  const score=72;
+  const score=74;
   ring.style.strokeDashoffset = 364*(1-score/100);
   let v=0; const iv=setInterval(()=>{v=Math.min(v+2,score);document.getElementById('scoreNum').textContent=v;if(v>=score)clearInterval(iv);},18);
 
-  cu('savRate',42,'%','',0);
-  cu('budAdh',83,'%','',0);
+  cu('savRate',70,'%','',0);
+  cu('budAdh',54,'%','',0);
   cu('mIncome',11600,'','$',0);
   cu('mBudget',5250,'','$',0);
   cu('mSpent',3482,'','$',0);
-  cu('mSave',8118,'','$',0);
+  cu('mSave',84,'','$',0);
 
   // Budget bars
   document.querySelectorAll('.budget-bar-fill').forEach(el=>{ el.style.width=el.dataset.w; });

@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Analytics — Vault</title>
   <link rel="stylesheet" href="styles.css"/>
+  <script src="vault-data.js"></script>
   <style>
     .main{grid-area:main;padding:2rem 2.5rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
     .aside{grid-area:aside;background:var(--surface-container-low);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;}
@@ -101,18 +102,18 @@
 
     <!-- Stat strip -->
     <div class="stat-strip">
-      <div class="stat-card stagger"><div class="label-sm">Total Spent</div><div class="stat-val" id="s1">$0</div><span class="stat-delta dn">↑ 3.2% vs last month</span></div>
-      <div class="stat-card stagger"><div class="label-sm">Avg / Day</div><div class="stat-val" id="s2">$0</div><span class="stat-delta dn">↑ 0.8%</span></div>
-      <div class="stat-card stagger"><div class="label-sm">Largest Purchase</div><div class="stat-val" id="s3">$0</div><span class="body-sm">Nobu Restaurant</span></div>
-      <div class="stat-card stagger"><div class="label-sm">Saved vs Budget</div><div class="stat-val text-primary" id="s4">$0</div><span class="stat-delta up">↑ 12% on target</span></div>
+      <div class="stat-card stagger"><div class="label-sm">Total Spent</div><div class="stat-val" id="s1">$0</div><span class="stat-delta dn">66% of monthly budget</span></div>
+      <div class="stat-card stagger"><div class="label-sm">Daily Pace</div><div class="stat-val" id="s2">$0</div><span class="stat-delta dn">target is $175/day</span></div>
+      <div class="stat-card stagger"><div class="label-sm">Largest Flexible</div><div class="stat-val" id="s3">$0</div><span class="body-sm">Nobu Restaurant</span></div>
+      <div class="stat-card stagger"><div class="label-sm">Budget Room</div><div class="stat-val text-primary" id="s4">$0</div><span class="stat-delta up">$84/day left</span></div>
     </div>
 
     <!-- Line Chart -->
     <div class="chart-panel stagger">
       <div class="chart-controls">
         <div>
-          <div class="title-lg">Spending Over Time</div>
-          <div class="body-sm mt-1">Daily spend — April 2026</div>
+          <div class="title-lg">Flexible Spend Over Time</div>
+          <div class="body-sm mt-1">Daily card spend, excluding fixed housing, April 2026</div>
         </div>
         <div style="display:flex;align-items:center;gap:1rem;">
           <div class="period-tabs">
@@ -191,32 +192,32 @@
         </div>
         <div class="cat-row">
           <div class="cat-emoji">🏠</div>
-          <div class="cat-info"><div class="cat-name">Housing</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:var(--primary)" data-w="65%"></div></div></div>
+          <div class="cat-info"><div class="cat-name">Housing</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:var(--primary)" data-w="100%"></div></div></div>
           <div class="cat-amt">$2,100</div>
         </div>
         <div class="cat-row">
           <div class="cat-emoji">🍽️</div>
-          <div class="cat-info"><div class="cat-name">Food & Drink</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:var(--secondary)" data-w="42%"></div></div></div>
-          <div class="cat-amt">$620</div>
+          <div class="cat-info"><div class="cat-name">Food & Drink</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:var(--secondary)" data-w="39%"></div></div></div>
+          <div class="cat-amt">$810</div>
         </div>
         <div class="cat-row">
           <div class="cat-emoji">🛒</div>
-          <div class="cat-info"><div class="cat-name">Shopping</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:#64b4ff" data-w="28%"></div></div></div>
+          <div class="cat-info"><div class="cat-name">Shopping</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:#64b4ff" data-w="11%"></div></div></div>
           <div class="cat-amt">$229</div>
         </div>
         <div class="cat-row">
           <div class="cat-emoji">🚕</div>
-          <div class="cat-info"><div class="cat-name">Transport</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:var(--tertiary)" data-w="18%"></div></div></div>
+          <div class="cat-info"><div class="cat-name">Transport</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:var(--tertiary)" data-w="14%"></div></div></div>
           <div class="cat-amt">$284</div>
         </div>
         <div class="cat-row">
           <div class="cat-emoji">🎵</div>
-          <div class="cat-info"><div class="cat-name">Subscriptions</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:#a78bfa" data-w="12%"></div></div></div>
+          <div class="cat-info"><div class="cat-name">Subscriptions</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:#a78bfa" data-w="2%"></div></div></div>
           <div class="cat-amt">$36</div>
         </div>
         <div class="cat-row">
           <div class="cat-emoji">🏥</div>
-          <div class="cat-info"><div class="cat-name">Health</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:#f472b6" data-w="8%"></div></div></div>
+          <div class="cat-info"><div class="cat-name">Health</div><div class="cat-bar-track"><div class="cat-bar-fill" style="background:#f472b6" data-w="1%"></div></div></div>
           <div class="cat-amt">$23</div>
         </div>
       </div>
@@ -226,23 +227,23 @@
         <div class="title-lg mb-4">Smart Insights</div>
 
         <div class="insight-card">
-          <div class="title-sm text-primary">On track this month</div>
-          <div class="body-sm mt-1">You've spent 65% of your budget with 68% of the month remaining. You're saving more than last month.</div>
+          <div class="title-sm text-primary">Budget room is still positive</div>
+          <div class="body-sm mt-1">$1,768 remains from the monthly budget, which gives you about $84/day through Apr 30.</div>
         </div>
 
         <div class="insight-card warn">
-          <div class="title-sm text-tertiary">Dining up 34%</div>
-          <div class="body-sm mt-1">You spent $184 at Nobu Restaurant on Apr 8 — your largest single dining charge this year.</div>
+          <div class="title-sm text-tertiary">Food is ahead of pace</div>
+          <div class="body-sm mt-1">Food & Drink is 81% used after 9 days. Keep the remaining category spend under $9/day.</div>
         </div>
 
         <div class="insight-card info">
-          <div class="title-sm text-secondary">Subscription review due</div>
-          <div class="body-sm mt-1">You have 5 active subscriptions totalling $36.47/mo. Consider reviewing unused ones.</div>
+          <div class="title-sm text-secondary">Fixed costs are predictable</div>
+          <div class="body-sm mt-1">Housing is paid and subscriptions are only 36% used, so the main risk is variable spending.</div>
         </div>
 
         <div class="insight-card">
           <div class="title-sm text-primary">Payroll received</div>
-          <div class="body-sm mt-1">$9,200 deposited today. Combined with freelance income, total inflow this month is $11,600.</div>
+          <div class="body-sm mt-1">$11,600 has come in this month. Current unspent income is $8,118 before future bills or transfers.</div>
         </div>
       </div>
 
@@ -278,7 +279,7 @@
       <div class="title-md mb-3">Monthly Comparison</div>
       <div style="display:flex;flex-direction:column;gap:.875rem;">
         <div>
-          <div class="flex justify-between mb-1"><span class="label-sm">April (current)</span><span class="label-sm text-primary">$3,284</span></div>
+          <div class="flex justify-between mb-1"><span class="label-sm">April (current)</span><span class="label-sm text-primary">$3,482</span></div>
           <div class="mini-bar-track"><div class="mini-bar-fill green" style="width:0" data-w="66%"></div></div>
         </div>
         <div>
@@ -317,7 +318,7 @@ function cu(id, val, pre='$', dec=0) {
   const t0=performance.now();
   (function u(now){const p=Math.min((now-t0)/1200,1),e=1-Math.pow(1-p,3);el.textContent=pre+(val*e).toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');if(p<1)requestAnimationFrame(u);else el.textContent=pre+val.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g,',');})(t0);
 }
-setTimeout(()=>{cu('s1',3284);cu('s2',365.96,'$',2);cu('s3',2100);cu('s4',1716);},200);
+setTimeout(()=>{cu('s1',3482);cu('s2',386.89,'$',2);cu('s3',184);cu('s4',1768);},200);
 
 /* Animate line chart */
 setTimeout(()=>{
