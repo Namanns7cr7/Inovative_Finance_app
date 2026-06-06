@@ -10,7 +10,7 @@
     .splash.out{opacity:0;transform:scale(1.05);pointer-events:none;}
     .splash-logo{display:flex;align-items:center;gap:.875rem;animation:splashEntry .7s cubic-bezier(.34,1.56,.64,1) both;}
     .splash-mark{width:52px;height:52px;background:var(--gradient-cta);border-radius:16px;display:flex;align-items:center;justify-content:center;animation:glowPulse 2s ease infinite;}
-    .splash-name{font-family:'Manrope',sans-serif;font-weight:800;font-size:2.25rem;letter-spacing:-.03em;}
+    .splash-name{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:2.25rem;letter-spacing:-.04em;}
     .splash-tagline{font-size:.8125rem;color:var(--on-surface-variant);letter-spacing:.06em;text-transform:uppercase;animation:fadeIn .8s .3s both;}
     .splash-bar{width:140px;height:2px;background:var(--surface-container);border-radius:var(--radius-full);overflow:hidden;}
     .splash-bar-fill{height:100%;background:var(--gradient-cta);border-radius:var(--radius-full);animation:loadBar 1.3s cubic-bezier(.4,0,.2,1) forwards;}
@@ -19,28 +19,30 @@
 
     /* Layout */
     .main{grid-area:main;padding:2rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
-    .aside{grid-area:aside;background:var(--surface-container-low);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;}
-    .aside-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.5rem;border:1px solid rgba(72,72,71,.12);}
+    .aside{grid-area:aside;background:rgba(12,13,12,.74);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);padding:2rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem;overflow-y:auto;border-left:1px solid rgba(255,255,255,.06);}
+    .aside-card{background:var(--gradient-panel);border-radius:var(--radius-xl);padding:1.5rem;border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.045),var(--shadow-card);}
     .stagger-aside{opacity:0;animation:slideUp .5s cubic-bezier(.4,0,.2,1) forwards;}
     .stagger-aside:nth-child(1){animation-delay:.4s;}
     .stagger-aside:nth-child(2){animation-delay:.6s;}
     .stagger-aside:nth-child(3){animation-delay:.8s;}
 
     /* Hero */
-    .hero{background:var(--surface-container);border-radius:var(--radius-xl);padding:2.5rem;position:relative;overflow:hidden;}
+    .hero{background:linear-gradient(145deg,rgba(32,32,31,.95),rgba(17,18,17,.94));border-radius:2rem;padding:2.75rem;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.1);box-shadow:var(--shadow-float);}
+    .hero::before{content:'';position:absolute;inset:-1px;background:radial-gradient(circle at 18% 8%,rgba(63,255,139,.26),transparent 30%),radial-gradient(circle at 85% 18%,rgba(253,192,3,.15),transparent 28%),linear-gradient(120deg,rgba(255,255,255,.08),transparent 45%);pointer-events:none;}
+    .hero::after{content:'';position:absolute;right:-80px;bottom:-110px;width:320px;height:320px;border:1px solid rgba(63,255,139,.16);border-radius:42% 58% 48% 52%;background:radial-gradient(circle,rgba(63,255,139,.1),transparent 62%);animation:floatUp 5s ease-in-out infinite;}
     #heroCanvas{position:absolute;inset:0;width:100%!important;height:100%!important;pointer-events:none;}
     .hero-content{position:relative;z-index:1;}
     .hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;}
-    .balance-num{font-family:'Manrope',sans-serif;font-size:clamp(2.5rem,5vw,4.5rem);font-weight:800;line-height:1;letter-spacing:-.03em;}
+    .balance-num{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.5rem,5vw,4.75rem);font-weight:700;line-height:1;letter-spacing:-.05em;background:linear-gradient(180deg,#fff 12%,#d9ffe7 100%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 18px 48px rgba(63,255,139,.14);}
     .balance-sup{font-size:1.5rem;font-weight:700;color:var(--on-surface-variant);vertical-align:super;line-height:1;margin-right:.15rem;}
     .hero-change{display:inline-flex;align-items:center;gap:.3rem;background:rgba(63,255,139,.1);color:var(--primary);border-radius:var(--radius-full);padding:.25rem .65rem;font-size:.75rem;font-weight:600;margin-left:.75rem;vertical-align:middle;}
-    .hero-badge{background:rgba(63,255,139,.08);border:1px solid rgba(63,255,139,.15);border-radius:var(--radius-full);padding:.35rem .875rem;font-size:.75rem;font-weight:600;color:var(--primary);white-space:nowrap;}
+    .hero-badge{background:rgba(63,255,139,.1);border:1px solid rgba(63,255,139,.22);border-radius:var(--radius-full);padding:.35rem .875rem;font-size:.75rem;font-weight:700;color:var(--primary);white-space:nowrap;box-shadow:0 0 0 4px rgba(63,255,139,.035);}
     .hero-actions{display:flex;gap:.75rem;flex-wrap:wrap;}
 
     /* Cards Grid */
     .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;}
     .card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;}
-    .card-amount{font-family:'Manrope',sans-serif;font-size:1.875rem;font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:.25rem;}
+    .card-amount{font-family:'Space Grotesk',sans-serif;font-size:1.875rem;font-weight:700;line-height:1.1;letter-spacing:-.035em;margin-bottom:.25rem;}
 
     /* Sparkline */
     .sparkline-wrap{margin-top:1rem;}
@@ -49,16 +51,20 @@
 
     /* Transactions */
     .tx-list{display:flex;flex-direction:column;}
-    .tx-item{display:flex;align-items:center;gap:1rem;padding:1rem 0;cursor:pointer;transition:background .15s;border-radius:var(--radius-md);}
-    .tx-item:hover{background:rgba(255,255,255,.02);margin:0 -.75rem;padding-left:.75rem;padding-right:.75rem;}
-    .tx-icon{width:44px;height:44px;border-radius:var(--radius-md);background:var(--surface-container-high);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+    .tx-item{display:flex;align-items:center;gap:1rem;padding:1rem 0;cursor:pointer;transition:background .15s,transform .15s;border-radius:var(--radius-md);}
+    .tx-item:hover{background:rgba(255,255,255,.035);margin:0 -.75rem;padding-left:.75rem;padding-right:.75rem;transform:translateX(2px);}
+    .tx-icon{width:44px;height:44px;border-radius:var(--radius-md);background:linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.035));display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;border:1px solid rgba(255,255,255,.07);}
+    .tx-item:nth-child(1) .tx-icon{background:rgba(253,192,3,.1);}
+    .tx-item:nth-child(2) .tx-icon{background:rgba(63,255,139,.11);}
+    .tx-item:nth-child(3) .tx-icon{background:rgba(100,180,255,.11);}
+    .tx-item:nth-child(4) .tx-icon{background:rgba(168,137,255,.11);}
     .tx-info{flex:1;min-width:0;}
     .tx-name{font-size:.9375rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .tx-meta{display:flex;gap:.5rem;align-items:center;margin-top:.2rem;}
     .tx-cat{font-size:.6875rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--on-surface-variant);}
     .tx-dot{width:3px;height:3px;border-radius:50%;background:var(--outline-variant);}
     .tx-date{font-size:.6875rem;color:var(--on-surface-variant);}
-    .tx-amount{font-family:'Manrope',sans-serif;font-size:.9375rem;font-weight:700;text-align:right;flex-shrink:0;}
+    .tx-amount{font-family:'Space Grotesk',sans-serif;font-size:.9375rem;font-weight:700;text-align:right;flex-shrink:0;}
     .tx-amount.credit{color:var(--primary);}
 
     /* Charts */
@@ -81,7 +87,7 @@
 
     /* Quick transfer */
     .contact-row{display:flex;gap:.5rem;flex-wrap:wrap;}
-    .contact-av{width:40px;height:40px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;transition:transform .15s;}
+    .contact-av{width:40px;height:40px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.75rem;cursor:pointer;transition:transform .15s,box-shadow .15s;}
     .contact-av:hover{transform:scale(1.12);}
     .add-contact-btn{width:40px;height:40px;border-radius:var(--radius-full);border:1px dashed rgba(72,72,71,.4);background:none;display:flex;align-items:center;justify-content:center;color:var(--on-surface-variant);transition:border-color .2s,color .2s;}
     .add-contact-btn:hover{border-color:var(--primary);color:var(--primary);}
@@ -128,7 +134,7 @@
 
   <!-- Topnav -->
   <header class="topnav">
-    <div><div class="headline-sm">Good morning, Naman</div><div class="body-sm mt-1">Wednesday, April 9 · 2026</div></div>
+    <div><div class="headline-sm">Good morning, Naman</div><div class="body-sm mt-1">Saturday, June 6 · 2026</div></div>
     <div class="topnav-search"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--on-surface-variant);flex-shrink:0"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" placeholder="Search transactions, cards…"/><span style="font-size:.6875rem;color:var(--on-surface-variant);flex-shrink:0">⌘K</span></div>
     <div class="topnav-right">
       <div class="icon-btn"><div class="notif-dot"></div><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6zM8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
@@ -211,7 +217,7 @@
     <!-- Transactions -->
     <section class="stagger">
       <div class="section-header mb-4">
-        <div><div class="headline-sm">Recent Transactions</div><div class="label-sm mt-1">April 2026</div></div>
+        <div><div class="headline-sm">Recent Transactions</div><div class="label-sm mt-1">June 2026</div></div>
         <a href="transactions.html" class="btn btn-tertiary" style="font-size:.8125rem">View all →</a>
       </div>
       <div class="chips mb-4">
@@ -221,14 +227,14 @@
         <button class="chip">Transport</button>
         <button class="chip">Subscriptions</button>
       </div>
-      <div style="background:var(--surface-container);border-radius:var(--radius-xl);padding:.25rem 1.5rem;border:1px solid rgba(72,72,71,.12)">
+      <div style="background:var(--gradient-panel);border-radius:var(--radius-xl);padding:.25rem 1.5rem;border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-card);">
         <div class="tx-list">
           <div class="tx-item"><div class="tx-icon">☕</div><div class="tx-info"><div class="tx-name">Blue Bottle Coffee</div><div class="tx-meta"><span class="tx-cat">Food</span><span class="tx-dot"></span><span class="tx-date">Today 9:14 AM</span></div></div><div class="tx-amount">−$6.50</div></div>
-          <div class="tx-item" style="background:rgba(63,255,139,.025);margin:0 -1.5rem;padding-left:1.5rem;padding-right:1.5rem;"><div class="tx-icon">💼</div><div class="tx-info"><div class="tx-name">Payroll — April</div><div class="tx-meta"><span class="tx-cat">Income</span><span class="tx-dot"></span><span class="tx-date">Today 8:00 AM</span></div></div><div class="tx-amount credit">+$9,200.00</div></div>
+          <div class="tx-item" style="background:rgba(63,255,139,.025);margin:0 -1.5rem;padding-left:1.5rem;padding-right:1.5rem;"><div class="tx-icon">💼</div><div class="tx-info"><div class="tx-name">Payroll — June</div><div class="tx-meta"><span class="tx-cat">Income</span><span class="tx-dot"></span><span class="tx-date">Today 8:00 AM</span></div></div><div class="tx-amount credit">+$9,200.00</div></div>
           <div class="tx-item"><div class="tx-icon">🚕</div><div class="tx-info"><div class="tx-name">Uber</div><div class="tx-meta"><span class="tx-cat">Transport</span><span class="tx-dot"></span><span class="tx-date">Yesterday</span></div></div><div class="tx-amount">−$14.20</div></div>
-          <div class="tx-item"><div class="tx-icon">🎵</div><div class="tx-info"><div class="tx-name">Spotify Premium</div><div class="tx-meta"><span class="tx-cat">Subscriptions</span><span class="tx-dot"></span><span class="tx-date">Apr 8</span></div></div><div class="tx-amount">−$10.99</div></div>
-          <div class="tx-item"><div class="tx-icon">🛒</div><div class="tx-info"><div class="tx-name">Whole Foods Market</div><div class="tx-meta"><span class="tx-cat">Shopping</span><span class="tx-dot"></span><span class="tx-date">Apr 7</span></div></div><div class="tx-amount">−$87.35</div></div>
-          <div class="tx-item"><div class="tx-icon">🏠</div><div class="tx-info"><div class="tx-name">Rent — April</div><div class="tx-meta"><span class="tx-cat">Housing</span><span class="tx-dot"></span><span class="tx-date">Apr 1</span></div></div><div class="tx-amount">−$2,100.00</div></div>
+          <div class="tx-item"><div class="tx-icon">🎵</div><div class="tx-info"><div class="tx-name">Spotify Premium</div><div class="tx-meta"><span class="tx-cat">Subscriptions</span><span class="tx-dot"></span><span class="tx-date">Jun 5</span></div></div><div class="tx-amount">−$10.99</div></div>
+          <div class="tx-item"><div class="tx-icon">🛒</div><div class="tx-info"><div class="tx-name">Whole Foods Market</div><div class="tx-meta"><span class="tx-cat">Shopping</span><span class="tx-dot"></span><span class="tx-date">Jun 4</span></div></div><div class="tx-amount">−$87.35</div></div>
+          <div class="tx-item"><div class="tx-icon">🏠</div><div class="tx-info"><div class="tx-name">Rent — June</div><div class="tx-meta"><span class="tx-cat">Housing</span><span class="tx-dot"></span><span class="tx-date">Jun 1</span></div></div><div class="tx-amount">−$2,100.00</div></div>
         </div>
       </div>
     </section>
@@ -241,12 +247,12 @@
     <div class="aside-card stagger-aside">
       <div class="section-header"><div class="title-md">Spending</div><span class="label-sm">6 months</span></div>
       <div class="chart-bars">
-        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b1" style="height:0"></div><span class="chart-bar-lbl">Nov</span></div>
-        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b2" style="height:0"></div><span class="chart-bar-lbl">Dec</span></div>
-        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b3" style="height:0"></div><span class="chart-bar-lbl">Jan</span></div>
-        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b4" style="height:0"></div><span class="chart-bar-lbl">Feb</span></div>
-        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b5" style="height:0"></div><span class="chart-bar-lbl">Mar</span></div>
-        <div class="chart-bar-col"><div class="chart-bar active-bar" id="b6" style="height:0"></div><span class="chart-bar-lbl text-primary">Apr</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b1" style="height:0"></div><span class="chart-bar-lbl">Jan</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b2" style="height:0"></div><span class="chart-bar-lbl">Feb</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b3" style="height:0"></div><span class="chart-bar-lbl">Mar</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b4" style="height:0"></div><span class="chart-bar-lbl">Apr</span></div>
+        <div class="chart-bar-col"><div class="chart-bar dim-bar" id="b5" style="height:0"></div><span class="chart-bar-lbl">May</span></div>
+        <div class="chart-bar-col"><div class="chart-bar active-bar" id="b6" style="height:0"></div><span class="chart-bar-lbl text-primary">Jun</span></div>
       </div>
     </div>
 
