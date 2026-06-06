@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Transfer — Vault</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .main{grid-area:main;padding:2rem 2.5rem;display:flex;flex-direction:column;gap:2rem;overflow-y:auto;}
+
+    /* Step indicator */
+    .step-indicator{display:flex;align-items:center;gap:0;max-width:480px;}
+    .step-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:700;font-size:.8125rem;border:2px solid var(--surface-bright);color:var(--on-surface-variant);transition:all .35s cubic-bezier(.4,0,.2,1);flex-shrink:0;position:relative;z-index:1;}
+    .step-dot.active{border-color:var(--primary);color:var(--primary);box-shadow:0 0 0 4px rgba(63,255,139,.1);}
+    .step-dot.done{border-color:var(--primary);background:var(--primary);color:var(--on-primary);}
+    .step-line{flex:1;height:2px;background:var(--surface-bright);transition:background .5s .1s;}
+    .step-line.done{background:var(--primary);}
+    .step-label{font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--on-surface-variant);margin-top:.4rem;transition:color .3s;}
+    .step-label.active{color:var(--primary);}
+    .step-wrap{display:flex;flex-direction:column;align-items:center;gap:0;}
+
+    /* Wizard panels */
+    .wizard{position:relative;overflow:hidden;}
+    .step-panel{transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .45s;width:100%;}
+    .step-panel.hidden-left {transform:translateX(-100%);opacity:0;position:absolute;top:0;left:0;pointer-events:none;}
+    .step-panel.hidden-right{transform:translateX(100%); opacity:0;position:absolute;top:0;left:0;pointer-events:none;}
+    .step-panel.active{transform:none;opacity:1;position:relative;}
+
+    /* Recipient grid */
+    .recipient-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+    .recipient-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:1.25rem 1rem;border:2px solid rgba(72,72,71,.12);text-align:center;cursor:pointer;transition:border-color .2s,transform .2s,background .2s;}
+    .recipient-card:hover{border-color:rgba(72,72,71,.3);transform:translateY(-3px);}
+    .recipient-card.selected{border-color:var(--primary);background:rgba(63,255,139,.04);}
+    .recip-av{width:52px;height:52px;border-radius:50%;margin:0 auto .75rem;display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:700;font-size:.9375rem;}
+    .recip-name{font-size:.875rem;font-weight:600;margin-bottom:.2rem;}
+    .recip-handle{font-size:.75rem;color:var(--on-surface-variant);}
+    .recip-last{font-size:.6875rem;color:var(--on-surface-variant);margin-top:.4rem;}
+
+    /* Amount input */
+    .amount-display{text-align:center;padding:2.5rem 0 2rem;}
+    .amount-prefix{font-family:'Manrope',sans-serif;font-size:2.5rem;font-weight:700;color:var(--on-surface-variant);vertical-align:super;line-height:1;}
+    .amount-input{font-family:'Manrope',sans-serif;font-size:clamp(3rem,8vw,5.5rem);font-weight:800;letter-spacing:-.04em;background:none;border:none;outline:none;color:var(--on-surface);text-align:center;width:260px;caret-color:var(--primary);}
+    .amount-input::placeholder{color:rgba(255,255,255,.12);}
+
+    /* Quick amounts */
+    .quick-amounts{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;}
+    .quick-btn{background:var(--surface-container-high);border:1px solid rgba(72,72,71,.2);border-radius:var(--radius-full);padding:.4rem 1rem;font-size:.875rem;font-weight:600;color:var(--on-surface-variant);transition:border-color .2s,color .2s;}
+    .quick-btn:hover{border-color:var(--primary);color:var(--primary);}
+
+    /* Note */
+    .note-field{width:100%;background:var(--surface-container);border:1px solid rgba(72,72,71,.2);border-radius:var(--radius-lg);padding:1rem 1.25rem;color:var(--on-surface);font-size:.9375rem;resize:none;outline:none;transition:border-color .2s,box-shadow .2s;height:80px;}
+    .note-field:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(63,255,139,.07);}
+    .note-field::placeholder{color:var(--on-surface-variant);}
+
+    /* Review card */
+    .review-card{background:var(--surface-container);border-radius:var(--radius-xl);padding:2rem;border:1px solid rgba(72,72,71,.12);}
+    .review-amount{font-family:'Manrope',sans-serif;font-size:3.5rem;font-weight:800;letter-spacing:-.04em;text-align:center;margin:1.5rem 0;}
+    .review-row{display:flex;justify-content:space-between;align-items:center;padding:.875rem 0;}
+    .review-divider{height:1px;background:rgba(72,72,71,.1);}
+    .review-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:700;font-size:.875rem;}
+
+    /* PIN dots */
+    .pin-row{display:flex;gap:.875rem;justify-content:center;margin:1.5rem 0;}
+    .pin-dot{width:16px;height:16px;border-radius:50%;background:var(--surface-bright);border:2px solid rgba(72,72,71,.3);transition:background .2s,border-color .2s,transform .2s cubic-bezier(.34,1.56,.64,1);}
+    .pin-dot.filled{background:var(--primary);border-color:var(--primary);transform:scale(1.15);}
+
+    /* Success overlay */
+    .success-overlay{
+      position:fixed;inset:0;z-index:500;
+      background:var(--surface);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;
+      opacity:0;pointer-events:none;
+      transition:opacity .4s ease;
+    }
+    .success-overlay.show{opacity:1;pointer-events:all;}
+    .success-rings{position:relative;width:120px;height:120px;display:flex;align-items:center;justify-content:center;}
+    .s-ring{position:absolute;border-radius:50%;border:2px solid var(--primary);opacity:0;animation:none;}
+    .s-ring.animate{animation:successRing 1.2s ease forwards;}
+    .s-ring:nth-child(1){width:80px; height:80px; animation-delay:0s;}
+    .s-ring:nth-child(2){width:100px;height:100px;animation-delay:.2s;}
+    .s-ring:nth-child(3){width:120px;height:120px;animation-delay:.4s;}
+    .success-icon{width:64px;height:64px;border-radius:50%;background:var(--gradient-cta);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;animation:none;}
+    .success-icon.pop{animation:iconPop .5s cubic-bezier(.34,1.56,.64,1) both;}
+    @keyframes iconPop{from{transform:scale(0)}to{transform:scale(1)}}
+    .success-title{font-family:'Manrope',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-.03em;}
+    .success-sub{color:var(--on-surface-variant);font-size:.9375rem;}
+    .confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+    .confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;animation:confettiFall linear forwards;}
+    @keyframes confettiFall{from{transform:translateY(-20px) rotate(0deg);opacity:1}to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-mark"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><rect x="2" y="8" width="7" height="10" rx="1.5" fill="#000"/><rect x="11" y="4" width="7" height="14" rx="1.5" fill="#000"/><circle cx="5.5" cy="5.5" r="3.5" fill="#000"/></svg></div><span class="logo-name">Vault</span></div>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Overview</span>
+      <a class="nav-item" href="index.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="9" rx="2" fill="currentColor"/><rect x="11" y="2" width="7" height="4" rx="2" fill="currentColor"/><rect x="2" y="13" width="7" height="5" rx="2" fill="currentColor"/><rect x="11" y="8" width="7" height="10" rx="2" fill="currentColor"/></svg>Dashboard</a>
+      <a class="nav-item" href="transactions.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Transactions</a>
+      <a class="nav-item active" href="transfer.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 10h14M10 3l7 7-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Transfers</a>
+      <a class="nav-item" href="cards.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2.5" y="5.5" width="15" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 9h15" stroke="currentColor" stroke-width="1.5"/></svg>Cards</a>
+    </nav>
+    <nav class="nav-section">
+      <span class="label-sm nav-label">Finance</span>
+      <a class="nav-item" href="analytics.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M3 14l4-5 4 3 3-5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Analytics</a>
+      <a class="nav-item" href="budget.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M13 15h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 7V5.5a4 4 0 018 0V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Budget</a>
+      <a class="nav-item" href="investments.html"><svg class="nav-icon" viewBox="0 0 20 20" fill="none"><path d="M2 15l5-5 4 2 5-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 6h3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Investments</a>
+    </nav>
+    <div class="sidebar-footer"><div class="sidebar-footer-avatar">NS</div><div style="flex:1;min-width:0;"><div class="sidebar-footer-name">Naman Sharma</div><div class="sidebar-footer-role">Premium Plan</div></div></div>
+  </aside>
+
+  <!-- Topnav -->
+  <header class="topnav">
+    <div><div class="headline-sm">Send Money</div><div class="body-sm mt-1">Instant transfers · Zero fees</div></div>
+    <div class="topnav-search"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" style="color:var(--on-surface-variant);flex-shrink:0"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><input type="text" placeholder="Search contacts…"/></div>
+    <div class="topnav-right"><div class="icon-btn"><div class="notif-dot"></div><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6zM8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="avatar">NS</div></div>
+  </header>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Step Indicator -->
+    <div style="display:flex;align-items:flex-start;gap:0;max-width:520px" class="stagger">
+      <div class="step-wrap"><div class="step-dot active" id="sd1">1</div><div class="step-label active" id="sl1">Recipient</div></div>
+      <div class="step-line" id="line1" style="margin-top:15px"></div>
+      <div class="step-wrap"><div class="step-dot" id="sd2">2</div><div class="step-label" id="sl2">Amount</div></div>
+      <div class="step-line" id="line2" style="margin-top:15px"></div>
+      <div class="step-wrap"><div class="step-dot" id="sd3">3</div><div class="step-label" id="sl3">Confirm</div></div>
+    </div>
+
+    <!-- Wizard -->
+    <div class="wizard stagger" id="wizard">
+
+      <!-- Step 1: Recipient -->
+      <div class="step-panel active" id="step1">
+        <div class="section-header mb-4">
+          <div><div class="headline-sm">Choose Recipient</div><div class="body-sm mt-1">Select from recent contacts or search</div></div>
+          <button class="btn btn-secondary" style="font-size:.8125rem">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            New Contact
+          </button>
+        </div>
+
+        <div class="label-sm mb-3">Recent</div>
+        <div class="recipient-grid" id="recipGrid">
+          <div class="recipient-card" data-name="Arjun Kumar" data-handle="@arjunk" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(63,255,139,.15);color:var(--primary)">AK</div>
+            <div class="recip-name">Arjun Kumar</div>
+            <div class="recip-handle">@arjunk</div>
+            <div class="recip-last">Last: $250 · Mar 28</div>
+          </div>
+          <div class="recipient-card" data-name="Sneha Rao" data-handle="@snehar" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(253,192,3,.15);color:var(--secondary)">SR</div>
+            <div class="recip-name">Sneha Rao</div>
+            <div class="recip-handle">@snehar</div>
+            <div class="recip-last">Last: $80 · Apr 2</div>
+          </div>
+          <div class="recipient-card" data-name="Priya Mehta" data-handle="@priyam" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(255,113,108,.15);color:var(--tertiary)">PM</div>
+            <div class="recip-name">Priya Mehta</div>
+            <div class="recip-handle">@priyam</div>
+            <div class="recip-last">Last: $500 · Mar 15</div>
+          </div>
+          <div class="recipient-card" data-name="Jay Lim" data-handle="@jaylim" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(100,180,255,.15);color:#64b4ff">JL</div>
+            <div class="recip-name">Jay Lim</div>
+            <div class="recip-handle">@jaylim</div>
+            <div class="recip-last">Last: $120 · Feb 20</div>
+          </div>
+          <div class="recipient-card" data-name="Riya Shah" data-handle="@riyashah" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(167,139,250,.15);color:#a78bfa">RS</div>
+            <div class="recip-name">Riya Shah</div>
+            <div class="recip-handle">@riyashah</div>
+            <div class="recip-last">Last: $35 · Apr 6</div>
+          </div>
+          <div class="recipient-card" data-name="Dev Patel" data-handle="@devp" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(244,114,182,.15);color:#f472b6">DP</div>
+            <div class="recip-name">Dev Patel</div>
+            <div class="recip-handle">@devp</div>
+            <div class="recip-last">Last: $200 · Mar 5</div>
+          </div>
+          <div class="recipient-card" data-name="Aisha Noor" data-handle="@aishanoor" onclick="selectRecipient(this)">
+            <div class="recip-av" style="background:rgba(52,211,153,.15);color:#34d399">AN</div>
+            <div class="recip-name">Aisha Noor</div>
+            <div class="recip-handle">@aishanoor</div>
+            <div class="recip-last">Last: $60 · Mar 22</div>
+          </div>
+          <div class="recipient-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:var(--on-surface-variant)">
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="none"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div style="font-size:.8125rem;font-weight:500">Add New</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:2rem;">
+          <button class="btn btn-primary" id="nextBtn1" disabled onclick="goStep(2)" style="min-width:160px;justify-content:center">
+            Continue →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Amount -->
+      <div class="step-panel hidden-right" id="step2">
+        <div style="max-width:500px;margin:0 auto;text-align:center;">
+          <div class="label-sm mb-2" id="toLabel">Sending to —</div>
+          <div class="amount-display">
+            <span class="amount-prefix">$</span>
+            <input class="amount-input" id="amountInput" type="number" placeholder="0" min="1" oninput="updateAmount()"/>
+          </div>
+          <div class="quick-amounts mb-6">
+            <button class="quick-btn" onclick="setAmt(25)">$25</button>
+            <button class="quick-btn" onclick="setAmt(50)">$50</button>
+            <button class="quick-btn" onclick="setAmt(100)">$100</button>
+            <button class="quick-btn" onclick="setAmt(250)">$250</button>
+            <button class="quick-btn" onclick="setAmt(500)">$500</button>
+          </div>
+          <div class="input-wrap mb-4" style="text-align:left;">
+            <label class="input-label">Note (optional)</label>
+            <textarea class="note-field" id="noteField" placeholder="What's this for? e.g. Dinner split, Rent…"></textarea>
+          </div>
+          <div style="background:var(--surface-container);border-radius:var(--radius-lg);padding:.875rem 1.25rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+            <span class="body-sm">Available balance</span>
+            <span style="font-family:'Manrope',sans-serif;font-weight:700;font-size:.9375rem;" class="text-primary">$184,920.48</span>
+          </div>
+          <div style="display:flex;gap:.875rem;">
+            <button class="btn btn-secondary" onclick="goStep(1)" style="flex:1;justify-content:center">← Back</button>
+            <button class="btn btn-primary" id="nextBtn2" disabled onclick="goStep(3)" style="flex:2;justify-content:center">Review Transfer →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Confirm -->
+      <div class="step-panel hidden-right" id="step3">
+        <div style="max-width:480px;margin:0 auto;">
+          <div class="review-card">
+            <div class="label-sm" style="text-align:center">You're sending</div>
+            <div class="review-amount" id="reviewAmt">$0</div>
+
+            <div class="review-row">
+              <span class="body-sm">To</span>
+              <div style="display:flex;align-items:center;gap:.75rem;">
+                <div class="review-av" id="reviewAv" style="background:rgba(63,255,139,.15);color:var(--primary)">AK</div>
+                <div><div style="font-size:.9375rem;font-weight:600" id="reviewName">—</div><div class="body-sm" id="reviewHandle">—</div></div>
+              </div>
+            </div>
+            <div class="review-divider"></div>
+            <div class="review-row">
+              <span class="body-sm">From</span>
+              <div style="display:flex;align-items:center;gap:.75rem;">
+                <div class="review-av" style="background:var(--gradient-cta);color:var(--on-primary)">NS</div>
+                <div><div style="font-size:.9375rem;font-weight:600">Naman Sharma</div><div class="body-sm">Vault Account ••4829</div></div>
+              </div>
+            </div>
+            <div class="review-divider"></div>
+            <div class="review-row"><span class="body-sm">Fee</span><span style="font-family:'Manrope',sans-serif;font-weight:700" class="text-primary">Free</span></div>
+            <div class="review-divider"></div>
+            <div class="review-row"><span class="body-sm">Arrival</span><span style="font-size:.9375rem;font-weight:600">Instant · Apr 9, 2026</span></div>
+            <div class="review-divider"></div>
+            <div class="review-row" id="noteRow" style="display:none"><span class="body-sm">Note</span><span style="font-size:.875rem;font-weight:500" id="reviewNote">—</span></div>
+          </div>
+
+          <!-- PIN input -->
+          <div style="text-align:center;margin-top:2rem;">
+            <div class="label-sm mb-3">Enter PIN to confirm</div>
+            <div class="pin-row" id="pinRow">
+              <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+            </div>
+            <!-- Hidden PIN keypad input -->
+            <input type="password" id="pinInput" maxlength="4" inputmode="numeric" style="position:absolute;opacity:0;width:0;height:0;" oninput="updatePin()"/>
+          </div>
+
+          <div style="display:flex;gap:.875rem;margin-top:1.5rem;">
+            <button class="btn btn-secondary" onclick="goStep(2)" style="flex:1;justify-content:center">← Back</button>
+            <button class="btn btn-primary" id="confirmBtn" onclick="confirm()" style="flex:2;justify-content:center;animation:glowPulse 2s ease infinite">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M5 10l4 4 6-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Confirm & Send
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="confetti-wrap" id="confettiWrap"></div>
+  <div class="success-rings">
+    <div class="s-ring" id="r1"></div>
+    <div class="s-ring" id="r2"></div>
+    <div class="s-ring" id="r3"></div>
+    <div class="success-icon" id="successIcon">
+      <svg width="30" height="30" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-8" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+  <div class="success-title">Money Sent!</div>
+  <div class="success-sub" id="successMsg">$250 sent to Arjun Kumar</div>
+  <div style="display:flex;gap:1rem;margin-top:1rem;">
+    <button class="btn btn-secondary" onclick="location.href='transactions.html'">View Transaction</button>
+    <button class="btn btn-primary" onclick="resetWizard()">Send Again</button>
+  </div>
+</div>
+
+<script>
+let currentStep = 1, selectedRecipient = null, currentAmount = 0;
+
+/* Recipient select */
+function selectRecipient(card) {
+  document.querySelectorAll('.recipient-card').forEach(c=>c.classList.remove('selected'));
+  card.classList.add('selected');
+  selectedRecipient = {name:card.dataset.name, handle:card.dataset.handle, initials:card.querySelector('.recip-av').textContent};
+  document.getElementById('nextBtn1').disabled = false;
+}
+
+/* Amount */
+function setAmt(v) { document.getElementById('amountInput').value=v; updateAmount(); }
+function updateAmount() {
+  const v = parseFloat(document.getElementById('amountInput').value)||0;
+  currentAmount = v;
+  document.getElementById('nextBtn2').disabled = v <= 0;
+}
+
+/* Step navigation */
+function goStep(n) {
+  const panels = ['step1','step2','step3'];
+  const from = currentStep-1, to = n-1;
+  const forward = n > currentStep;
+
+  document.getElementById(panels[from]).classList.remove('active');
+  document.getElementById(panels[from]).classList.add(forward ? 'hidden-left' : 'hidden-right');
+
+  document.getElementById(panels[to]).classList.remove('hidden-left','hidden-right');
+  setTimeout(()=>document.getElementById(panels[to]).classList.add('active'),20);
+
+  // Update step dots
+  for(let i=1;i<=3;i++){
+    const dot=document.getElementById('sd'+i), lbl=document.getElementById('sl'+i);
+    if(i<n){dot.classList.add('done');dot.classList.remove('active');dot.innerHTML='<svg width="12" height="12" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 7-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';lbl.classList.remove('active');}
+    else if(i===n){dot.classList.add('active');dot.classList.remove('done');dot.textContent=i;lbl.classList.add('active');}
+    else{dot.classList.remove('active','done');dot.textContent=i;lbl.classList.remove('active');}
+  }
+  for(let i=1;i<=2;i++) document.getElementById('line'+i).classList.toggle('done',i<n);
+
+  if(n===2 && selectedRecipient) document.getElementById('toLabel').textContent='Sending to '+selectedRecipient.name;
+  if(n===3) fillReview();
+
+  currentStep = n;
+  if(n===3) setTimeout(()=>{ document.getElementById('pinInput').focus(); },400);
+}
+
+function fillReview() {
+  document.getElementById('reviewAmt').textContent = '$'+currentAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  document.getElementById('reviewName').textContent = selectedRecipient.name;
+  document.getElementById('reviewHandle').textContent = selectedRecipient.handle;
+  document.getElementById('reviewAv').textContent = selectedRecipient.initials;
+  const note = document.getElementById('noteField').value;
+  if(note){ document.getElementById('noteRow').style.display='flex'; document.getElementById('reviewNote').textContent=note; }
+}
+
+/* PIN */
+function updatePin() {
+  const v = document.getElementById('pinInput').value;
+  document.querySelectorAll('.pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<v.length));
+  if(v.length===4) setTimeout(confirm,300);
+}
+document.getElementById('pinRow').addEventListener('click',()=>document.getElementById('pinInput').focus());
+
+/* Confirm & success */
+function confirm() {
+  const overlay = document.getElementById('successOverlay');
+  document.getElementById('successMsg').textContent = '$'+currentAmount.toFixed(2)+' sent to '+selectedRecipient.name;
+  overlay.classList.add('show');
+
+  // Animate rings
+  setTimeout(()=>{ document.getElementById('successIcon').classList.add('pop'); },50);
+  [1,2,3].forEach(i=>setTimeout(()=>{ document.getElementById('r'+i).classList.add('animate'); },i*180));
+
+  // Confetti
+  const wrap = document.getElementById('confettiWrap');
+  const colors=['#3fff8b','#fdc003','#ff716c','#64b4ff','#a78bfa','#f472b6'];
+  for(let i=0;i<60;i++){
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    el.style.cssText=`left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};width:${6+Math.random()*6}px;height:${6+Math.random()*6}px;animation-duration:${2+Math.random()*2}s;animation-delay:${Math.random()*.5}s;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+    wrap.appendChild(el);
+  }
+}
+
+function resetWizard() {
+  document.getElementById('successOverlay').classList.remove('show');
+  document.getElementById('confettiWrap').innerHTML='';
+  document.querySelectorAll('.pin-dot').forEach(d=>d.classList.remove('filled'));
+  document.getElementById('pinInput').value='';
+  document.getElementById('amountInput').value='';
+  currentAmount=0; selectedRecipient=null;
+  document.querySelectorAll('.recipient-card').forEach(c=>c.classList.remove('selected'));
+  goStep(1);
+}
+</script>
+</body>
+</html>
