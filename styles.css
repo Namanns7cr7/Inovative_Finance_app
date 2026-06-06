@@ -36,6 +36,9 @@
   --shadow-card:  0 16px 36px rgba(0,0,0,.44);
   --glow-primary:   0 0 0 1px var(--primary),   0 0 12px rgba(63,255,139,.2);
   --glow-secondary: 0 0 0 1px var(--secondary), 0 0 12px rgba(253,192,3,.2);
+  --panel-border: rgba(255,255,255,.08);
+  --panel-border-strong: rgba(255,255,255,.12);
+  --panel-wash: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.026) 48%, rgba(63,255,139,.035));
 }
 
 /* ── Reset ───────────────────────────────────────────────────── */
@@ -239,11 +242,12 @@ img{display:block;}
   display:inline-flex;align-items:center;gap:.5rem;
   border:none;
   font-weight:600;font-size:.875rem;
-  border-radius:var(--radius-xl);
+  border-radius:var(--radius-lg);
   padding:.65rem 1.25rem;
   transition:opacity .2s,transform .15s,box-shadow .2s,border-color .2s;
   position:relative;overflow:hidden;
 }
+.btn svg{flex-shrink:0;}
 .btn::after{
   content:'';
   position:absolute;inset:0;
@@ -252,6 +256,12 @@ img{display:block;}
 }
 .btn:hover::after{background:rgba(255,255,255,.04);}
 .btn:active{transform:scale(.97);}
+.btn:disabled{
+  cursor:not-allowed;
+  opacity:.46;
+  transform:none!important;
+  box-shadow:none!important;
+}
 
 .btn-primary{background:var(--gradient-cta);color:var(--on-primary);box-shadow:0 10px 26px rgba(63,255,139,.14);}
 .btn-primary:hover{box-shadow:0 12px 34px rgba(63,255,139,.26);transform:translateY(-1px);}
@@ -283,7 +293,7 @@ img{display:block;}
   background:rgba(255,255,255,.035);
   color:var(--on-surface-variant);
   border:1px solid rgba(255,255,255,.08);
-  border-radius:.75rem;
+  border-radius:var(--radius-full);
   padding:.35rem .875rem;
   font-size:.75rem;font-weight:500;
   transition:background .15s,color .15s,border-color .15s,transform .1s;
@@ -488,6 +498,123 @@ img{display:block;}
 .w-full{width:100%;}
 .truncate{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
+/* ── Design Polish Layer ───────────────────────────────────────
+   Shared overrides that pull the secondary pages closer to the
+   dashboard's premium glass-and-depth treatment.
+───────────────────────────────────────────────────────────────── */
+.aside{
+  border-left:1px solid rgba(255,255,255,.06);
+}
+
+.stat-card,
+.stat-tile,
+.cs-tile,
+.ms-tile,
+.sb-tile,
+.chart-panel,
+.cat-panel,
+.aside-card,
+.recipient-card,
+.review-card,
+.health-panel,
+.budget-cat-card,
+.goal-card,
+.freeze-control,
+.invest-hero,
+.holdings-wrap,
+#txContainer > .tx-group > div:last-child,
+section.stagger > div[style*="background:var(--surface-container)"]{
+  background:var(--panel-wash),var(--surface-container-highest)!important;
+  border-color:var(--panel-border)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),var(--shadow-card);
+}
+
+.stat-card:hover,
+.stat-tile:hover,
+.cs-tile:hover,
+.ms-tile:hover,
+.sb-tile:hover,
+.recipient-card:hover,
+.budget-cat-card:hover,
+.goal-card:hover{
+  border-color:rgba(63,255,139,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 22px 44px rgba(0,0,0,.5);
+}
+
+.search-big,
+.filter-btn,
+.note-field,
+.input-field,
+.period-tabs,
+.quick-btn,
+.flip-btn{
+  background:rgba(255,255,255,.045)!important;
+  border-color:var(--panel-border)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.tx-row,
+.card-tx,
+.bill-row,
+.mover-row,
+.cat-row{
+  border-radius:var(--radius-md);
+}
+
+.tx-row:hover,
+.card-tx:hover,
+.bill-row:hover,
+.mover-row:hover,
+.cat-row:hover{
+  background:rgba(255,255,255,.045);
+}
+
+.tx-ico,
+.ctx-ico,
+.cat-emoji,
+.cat-emoji-wrap,
+.goal-icon,
+.bill-date-badge,
+.mover-icon,
+.holding-icon,
+.recip-av,
+.review-av{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.26);
+  border:1px solid rgba(255,255,255,.07);
+}
+
+.holdings-head{
+  background:rgba(255,255,255,.025);
+  border-bottom-color:rgba(255,255,255,.08)!important;
+}
+
+.holding-row + .holding-row,
+.card-tx + .card-tx,
+.bill-row + .bill-row{
+  border-top:1px solid rgba(255,255,255,.055);
+}
+
+.topnav{
+  min-height:72px;
+}
+
+.topnav-search span{
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  border-radius:.375rem;
+  padding:.08rem .35rem;
+}
+
+.section-header .btn-tertiary,
+.btn-tertiary{
+  border:1px solid transparent;
+}
+
+.btn-tertiary:hover{
+  border-color:rgba(63,255,139,.16);
+  background:rgba(63,255,139,.045);
+}
+
 /* ── Responsive Shell ────────────────────────────────────────── */
 @media (max-width: 1180px){
   .app-shell.with-aside{
@@ -593,8 +720,8 @@ img{display:block;}
   }
   .hero-actions,
   .quick-amounts{
-    flex-direction:column;
-    align-items:stretch;
+    flex-direction:column!important;
+    align-items:stretch!important;
   }
   .hero-actions .btn{
     justify-content:center;
